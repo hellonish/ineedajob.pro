@@ -41,7 +41,8 @@ class LLMModels:
             cls._deepseek_client = instructor.from_openai(
                 OpenAI(
                     base_url="https://api.deepseek.com",
-                    api_key=api_key
+                    api_key=api_key,
+                    timeout=60.0  # 60 second timeout
                 ),
                 mode=instructor.Mode.JSON
             )

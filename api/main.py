@@ -1,126 +1,61 @@
 """
-Wand API - Job Intelligence & Profile Matching
-
-FastAPI backend for the Wand application.
+Wand API - FastAPI Backend
 """
 
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+import os
+from dotenv import load_dotenv
 
-try:
-    # When running from parent directory: uvicorn api.main:app
-    from .db import create_tables
-    from .routes import profile, job, match, discrepancy, user, auth, application, analyze
-except ImportError as e:
-    # Print the error for debugging
-    import traceback
-    traceback.print_exc()
-    print(f"⚠️ Import error (likely running from api dir or missing dependency): {e}")
-    # When running from api directory: uvicorn main:app
-    from db import create_tables
-    from routes import profile, job, match, discrepancy, user, auth, application, analyze
+load_dotenv()
 
+from .routers import auth, jobs, cover_letters, discrepancies, news, queue, ws, profile
+from .database import engine, Base
+from . import models  # Import models to register them
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup and shutdown events."""
-    # Startup: Create tables
-    await create_tables()
-    print("✅ Database tables created")
-    yield
-    # Shutdown
-    print("👋 Shutting down")
-
+# Create all tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Wand API",
-    description="Job Intelligence & Profile Matching API",
-    version="1.0.0",
-    lifespan=lifespan
+    description="Resume analysis and job tracking platform",
+    version="1.0.0"
 )
 
-# CORS middleware
+# Session middleware for OAuth
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("JWT_SECRET_KEY", "change-me-in-production")
+)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"],
+    allow_origins=["*"],  # Update for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
 # Include routers
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-app.include_router(user.router, prefix="/user", tags=["Users"])
-app.include_router(profile.router, prefix="/profile", tags=["Profile"])
-app.include_router(job.router, prefix="/job", tags=["Job Intelligence"])
-app.include_router(match.router, prefix="/match", tags=["Matching"])
-app.include_router(discrepancy.router, prefix="/discrepancy", tags=["Discrepancy"])
-app.include_router(application.router, prefix="/application", tags=["Applications"])
-app.include_router(analyze.router, prefix="/analyze", tags=["Unified Analysis"])
+app.include_router(auth.router)
+app.include_router(jobs.router)
+app.include_router(cover_letters.router)
+app.include_router(discrepancies.router)
+app.include_router(news.router)
+app.include_router(queue.router)
+app.include_router(ws.router)
+app.include_router(profile.router)
+
+
+# Health check
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 @app.get("/")
 async def root():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "message": "Wand API is running",
-        "docs": "/docs"
-    }
+    return {"message": "Wand API", "docs": "/docs"}
 
-
-@app.get("/health")
-async def health():
-    """Health check."""
-    return {"status": "healthy"}
-
-
-# ============================================================================
-# WebSocket for Real-time Analysis Updates
-# ============================================================================
-
-from fastapi import WebSocket, WebSocketDisconnect
-
-try:
-    from .websocket import manager
-    from .auth import decode_token
-except ImportError:
-    from websocket import manager
-    from auth import decode_token
-
-
-@app.websocket("/ws/analyze/{token}")
-async def websocket_analyze(websocket: WebSocket, token: str):
-    """
-    WebSocket endpoint for real-time analysis status updates.
-    
-    Client connects with JWT token in path.
-    Receives status updates during background analysis.
-    """
-    # Validate token and get user_id
-    try:
-        payload = decode_token(token)
-        user_id = payload.get("sub")
-        if not user_id:
-            await websocket.close(code=4001, reason="Invalid token")
-            return
-    except Exception:
-        await websocket.close(code=4001, reason="Invalid token")
-        return
-    
-    # Connect and manage lifecycle
-    await manager.connect(websocket, user_id)
-    
-    try:
-        # Keep connection alive, receive ping/pong
-        while True:
-            data = await websocket.receive_text()
-            # Echo back pings or handle client messages
-            if data == "ping":
-                await websocket.send_text("pong")
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, user_id)
-    except Exception:
-        manager.disconnect(websocket, user_id)

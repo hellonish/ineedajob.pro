@@ -1,248 +1,199 @@
 """
-Pydantic schemas for API request/response models.
+Pydantic Schemas for API
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from enum import Enum
+from pydantic import BaseModel, Field
+from uuid import UUID
 
 
-# ============================================================================
-# USER SCHEMAS
-# ============================================================================
+# Enums
+class JobStatusEnum(str, Enum):
+    tracked = "tracked"
+    queued = "queued"
+    analyzing = "analyzing"
+    applied = "applied"
+    interview = "interview"
+    offer = "offer"
+    rejected = "rejected"
 
-class UserCreate(BaseModel):
+
+class CoverLetterModeEnum(str, Enum):
+    professional = "professional"
+    conversational = "conversational"
+    concise = "concise"
+    creative = "creative"
+    storytelling = "storytelling"
+
+
+# User Schemas
+class UserBase(BaseModel):
     email: str
+    name: str
+    profile_picture: Optional[str] = None
+
+
+class UserResponse(UserBase):
+    id: UUID
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class UserUpdate(BaseModel):
     name: Optional[str] = None
+    profile_picture: Optional[str] = None
 
 
-class UserResponse(BaseModel):
-    id: str
-    email: str
-    name: Optional[str]
+# Auth Schemas
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# Job Schemas
+class JobCreate(BaseModel):
+    job_posting: Dict[str, Any]
+    resume: Dict[str, Any]
+    unified_profile: Optional[Dict[str, Any]] = None
+
+
+class JobUpdate(BaseModel):
+    status: Optional[JobStatusEnum] = None
+    user_notes: Optional[str] = None
+    job_link: Optional[str] = None
+
+
+class ResumeHistoryResponse(BaseModel):
+    version: int
+    resume_data: Dict[str, Any]
+    score: Optional[float] = None
     created_at: datetime
     
     class Config:
         from_attributes = True
-
-
-# ============================================================================
-# PROFILE SCHEMAS
-# ============================================================================
-
-class ProfileCreate(BaseModel):
-    source_type: str  # 'resume', 'linkedin', 'portfolio'
-    file_name: Optional[str] = None
-
-
-class ProfileResponse(BaseModel):
-    id: str
-    user_id: str
-    source_type: str
-    file_name: Optional[str]
-    parsed_data: Dict[str, Any]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
-# ============================================================================
-# JOB SCHEMAS
-# ============================================================================
-
-class JobPostingRequest(BaseModel):
-    job_text: str
-    job_title: Optional[str] = None
-    company_name: Optional[str] = None
-
-
-class CompanyIntelRequest(BaseModel):
-    company_name: str
-    max_jobs: int = 50
-    include_website: bool = True
-    include_news: bool = True
 
 
 class JobResponse(BaseModel):
-    id: str
-    user_id: str
-    job_title: Optional[str]
-    company_name: Optional[str]
-    parsed_data: Dict[str, Any]
+    id: UUID
+    job_posting: Dict[str, Any]
+    analysis_result: Optional[Dict[str, Any]] = None
+    status: JobStatusEnum
+    user_notes: Optional[str] = None
+    resume_history: List[ResumeHistoryResponse] = []
     created_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True
 
 
 class JobListResponse(BaseModel):
-    """Enhanced job response for list view with application and match data."""
-    id: str
-    user_id: str
-    job_title: Optional[str]
-    company_name: Optional[str]
-    parsed_data: Dict[str, Any]
-    created_at: datetime
-    # Additional fields for list view
-    application_status: Optional[str] = None
-    application_notes: Optional[str] = None
-    match_score: Optional[int] = None
-    
-    class Config:
-        from_attributes = True
-
-
-# ============================================================================
-# MATCH SCHEMAS
-# ============================================================================
-
-class GapAnalysisHistoryItem(BaseModel):
-    id: str
-    match_score: int
+    id: UUID
+    job_posting: Dict[str, Any]
+    status: JobStatusEnum
+    final_score: Optional[float] = None
     created_at: datetime
     
     class Config:
         from_attributes = True
 
 
-class ResumeOptimizationRequest(BaseModel):
-    resume_id: str
-    job_id: str
+# Re-evaluation Schemas
+class ReEvaluateRequest(BaseModel):
+    modified_resume: Dict[str, Any]
 
 
-class GapAnalysisRequest(BaseModel):
-    profile_ids: List[str]
-    job_id: str
+class ReEvaluateResponse(BaseModel):
+    qualification_match_score: float
+    skill_match_score: float
+    formatting_score: int
+    keyword_match_score: float
+    final_score: float
+    score_change: float
+    improved: bool
 
 
-class GapAnalysisResponse(BaseModel):
-    id: str
-    job_id: str
-    match_score: int
-    analysis_data: Dict[str, Any]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
+# Cover Letter Schemas
+class CoverLetterCreate(BaseModel):
+    job_id: Optional[UUID] = None
+    mode: CoverLetterModeEnum = CoverLetterModeEnum.professional
 
 
-class CoverLetterRequest(BaseModel):
-    profile_ids: List[str]
-    job_id: str
-    style: str = "professional"  # professional, enthusiastic, concise
+class CoverLetterUpdate(BaseModel):
+    full_letter: Optional[str] = None
+    content: Optional[Dict[str, Any]] = None
 
 
 class CoverLetterResponse(BaseModel):
-    id: str
-    job_id: str
-    style: str
-    letter: str
-    letter_metadata: Optional[Dict[str, Any]] = None
+    id: UUID
+    job_id: Optional[UUID] = None
+    mode: str
+    content: Dict[str, Any]
     created_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True
 
 
-# ============================================================================
-# DISCREPANCY SCHEMAS
-# ============================================================================
-
-class DiscrepancyRequest(BaseModel):
-    profile_ids: List[str]  # 2-3 profile IDs to compare
+# Discrepancy Schemas
+class DiscrepancyCreate(BaseModel):
+    unified_profile: Dict[str, Any]
 
 
 class DiscrepancyResponse(BaseModel):
-    consistency_score: int
-    discrepancies: List[Dict[str, Any]]
-    skill_comparison: List[Dict[str, Any]]
-    missing_in_resume: List[str]
-    missing_online: List[str]
-    recommendations: List[str]
-    table_data: Optional[Dict[str, Any]] = None
-
-
-class DiscrepancyHistoryItem(BaseModel):
-    id: str
-    consistency_score: int
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
-class DiscrepancyReportResponse(BaseModel):
-    id: str
-    profile_ids: List[str]
-    consistency_score: int
-    report_data: Dict[str, Any]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-# ============================================================================
-# APPLICATION SCHEMAS
-# ============================================================================
-
-class ApplicationCreate(BaseModel):
-    job_id: str
-    cover_letter_id: Optional[str] = None
-    status: str = "saved"
-    notes: Optional[str] = None
-
-
-class ApplicationUpdate(BaseModel):
-    status: str  # Required
-    notes: Optional[str] = None
-    applied_at: Optional[datetime] = None
-
-
-class ApplicationResponse(BaseModel):
-    id: str
-    user_id: str
-    job_id: str
-    cover_letter_id: Optional[str]
-    status: str
-    notes: Optional[str]
-    applied_at: Optional[datetime]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
-# ============================================================================
-# UNIFIED ANALYZE SCHEMAS
-# ============================================================================
-
-class AnalyzeRequest(BaseModel):
-    """Request for unified job analysis endpoint."""
-    job_text: str = Field(..., description="Raw job posting text")
-    company_name: Optional[str] = Field(None, description="Company name for intel gathering")
-    profile_ids: List[str] = Field(..., description="IDs of profiles to use for matching")
-
-
-class AnalyzeResponse(BaseModel):
-    """Synchronous response with complete analysis results."""
-    job: Dict[str, Any] = Field(..., description="Parsed job data")
-    analysis: Dict[str, Any] = Field(..., description="Gap analysis results")
-    optimization: Optional[Dict[str, Any]] = Field(None, description="Resume optimization (if resume provided)")
-
-
-class AnalyzeTaskResponse(BaseModel):
-    """Async response with task ID for tracking."""
-    task_id: str
-    status: str = "pending"
-
-
-class AnalyzeStatusResponse(BaseModel):
-    """Status check response for async analysis."""
-    task_id: str
-    status: str  # pending, parsing, intel, analyzing, optimizing, complete, failed
-    job_title: Optional[str] = None
-    progress_message: Optional[str] = None
-    progress: int = 0  # 0-100
+    id: UUID
+    unified_profile: Dict[str, Any]
     result: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# News Schemas
+class NewsArticleResponse(BaseModel):
+    title: str
+    description: str
+    url: str
+    source: str
+    published_at: str
+
+
+class NewsResponse(BaseModel):
+    company_name: str
+    articles: List[NewsArticleResponse]
+    total_results: int
+
+# Profile Schemas
+class UserProfileResponse(BaseModel):
+    id: UUID
+    user_id: str
+    
+    # File Paths (Nullable)
+    resume_path: Optional[str] = None
+    linkedin_path: Optional[str] = None
+    portfolio_path: Optional[str] = None
+    
+    # Parsed Data (Nullable)
+    resume_data: Optional[Dict[str, Any]] = None
+    linkedin_data: Optional[Dict[str, Any]] = None
+    portfolio_data: Optional[Dict[str, Any]] = None
+    
+    # Final Profile
+    unified_profile: Optional[Dict[str, Any]] = None
+    
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ProfileUploadResponse(BaseModel):
+    file_type: str
+    filename: str
+    parsed_data: Dict[str, Any]

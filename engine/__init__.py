@@ -1,65 +1,58 @@
 """
 Engine Package - Unified Application Engine
 
-This package consolidates all core application logic:
-- job: Job intelligence and company data extraction
-- matcher: Profile-job matching and gap analysis
-- profile_extractor: Resume and profile parsing
-- discrepancy: Profile source comparison
-- models: LLM configurations
+Architecture:
+- profile: Resume/LinkedIn/Portfolio Parsing & Unification.
+- job: Job Intelligence (Context Engine).
+- analysis: Gap Analysis & Scoring (Decision Engine).
+- optimizer: Tailoring & Cover Letters (Action Engine).
+- discrepancy: Validation.
 """
 
-from .job import (
-    extract_company_intelligence,
-    extract_from_posting,
-    extract_full_job_context,
-    get_salary_and_stack,
-    get_company_info,
-    get_news_signals,
-    parse_job_posting
-)
+__all__ = []
 
-from .matcher import (
-    analyze_gaps,
-    analyze_match,
-    analyze_resume_gaps,
-    analyze_online_presence_gaps,
-    generate_cover_letter,
-    combine_profiles,
-    optimize_resume
-)
+# 1. Profile
+try:
+    from .profile import (
+        parse_resume, parse_linkedin, parse_portfolio, 
+        create_unified_profile, HybridResume
+    )
+    __all__.extend(['parse_resume', 'parse_linkedin', 'parse_portfolio', 'create_unified_profile', 'HybridResume'])
+except ImportError:
+    pass
 
-from .profile_extractor import parse_profile, ProfileData
+# 2. Job 
+try:
+    from .job import scan_job, JobIntelligence
+    __all__.extend(['scan_job', 'JobIntelligence'])
+except ImportError:
+    pass
 
-from .discrepancy import compare_profile_sources, format_for_table
+# 3. Analysis
+try:
+    from .analysis import analyze_gaps, calculate_score, GapAnalysis, MatchScoreCard
+    __all__.extend(['analyze_gaps', 'calculate_score', 'GapAnalysis', 'MatchScoreCard'])
+except ImportError:
+    pass
 
-from .models import get_deepseek_client, get_gemini_client, LLMModels
+# 4. Optimizer
+try:
+    from .optimizer import create_optimization_plan, execute_plan, generate_cover_letter, OptimizationPlan
+    __all__.extend(['create_optimization_plan', 'execute_plan', 'generate_cover_letter', 'OptimizationPlan'])
+except ImportError:
+    pass
 
-__all__ = [
-    # Job
-    'extract_company_intelligence',
-    'extract_from_posting',
-    'extract_full_job_context',
-    'get_salary_and_stack',
-    'get_company_info',
-    'get_news_signals',
-    'parse_job_posting',
-    # Matcher
-    'analyze_gaps',
-    'analyze_match',
-    'analyze_resume_gaps',
-    'analyze_online_presence_gaps',
-    'generate_cover_letter',
-    'combine_profiles',
-    'optimize_resume',
-    # Profile Extractor
-    'parse_profile',
-    'ProfileData',
-    # Discrepancy
-    'compare_profile_sources',
-    'format_for_table',
-    # Models
-    'get_deepseek_client',
-    'get_gemini_client',
-    'LLMModels'
-]
+# 5. Discrepancy
+try:
+    from .discrepancy import compare_profile_sources, format_for_table
+    __all__.extend(['compare_profile_sources', 'format_for_table'])
+except ImportError:
+    pass
+
+# 6. Models (Common)
+try:
+    from .models import get_deepseek_client
+    __all__.extend(['get_deepseek_client'])
+except ImportError:
+    pass
+

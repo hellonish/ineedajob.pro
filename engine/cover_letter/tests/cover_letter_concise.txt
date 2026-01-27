@@ -1,0 +1,14 @@
+Dear Hiring Manager,
+
+I am excited to apply for the Technology Associate Rotational Program at Lord Abbett. As a Computer Engineering graduate student at NYU Tandon with a strong foundation in software development and AI, I am eager to contribute to critical business initiatives within your fast-paced technology environment.
+
+As Co-Founder and Tech Lead at InGelt Board, I architected a cloud-native platform on AWS, managing the full SDLC and ensuring high availability. Additionally, my experience as a Machine Learning Teaching Assistant at NYU Tandon has honed my ability to communicate complex technical concepts effectively.
+
+My technical skills align well with the program's requirements, including proficiency in Java, Python, and JavaScript, as well as experience with cloud platforms like AWS. I am also familiar with databases, APIs, and DevOps practices, and possess a strong understanding of software development concepts.
+
+I am particularly drawn to Lord Abbett's commitment to active management and delivering alpha for clients. The opportunity to develop well-rounded technology skills within the asset management industry, while contributing to a respected firm, is highly appealing.
+
+Thank you for considering my application. I am eager to discuss how my skills and experiences can contribute to Lord Abbett. I look forward to hearing from you soon.
+
+Best regards,
+Nishant Sharma

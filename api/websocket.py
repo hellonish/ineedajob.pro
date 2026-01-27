@@ -1,105 +1,83 @@
 """
-WebSocket Connection Manager for real-time analysis updates.
-
-Manages user-specific WebSocket connections and broadcasts status updates.
+WebSocket Manager for Real-time Updates
 """
 
-from typing import Dict, List
-from fastapi import WebSocket
+import os
 import json
+from typing import Dict, Set
+from fastapi import WebSocket
+import redis
+from dotenv import load_dotenv
+
+load_dotenv()
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 
 class ConnectionManager:
-    """
-    Manages WebSocket connections per user.
-    
-    Allows broadcasting status updates to specific users during background analysis.
-    """
+    """Manages WebSocket connections per user."""
     
     def __init__(self):
-        # Map of user_id -> list of active WebSocket connections
-        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.active_connections: Dict[str, Set[WebSocket]] = {}
+        self.redis_client = None
+    
+    def _get_redis(self):
+        if self.redis_client is None:
+            self.redis_client = redis.from_url(REDIS_URL)
+        return self.redis_client
     
     async def connect(self, websocket: WebSocket, user_id: str):
-        """Accept a new WebSocket connection for a user."""
+        """Accept and register a WebSocket connection."""
         await websocket.accept()
         if user_id not in self.active_connections:
-            self.active_connections[user_id] = []
-        self.active_connections[user_id].append(websocket)
-        print(f"🔌 WebSocket connected for user {user_id[:8]}... (total: {len(self.active_connections[user_id])})")
+            self.active_connections[user_id] = set()
+        self.active_connections[user_id].add(websocket)
     
     def disconnect(self, websocket: WebSocket, user_id: str):
-        """Remove a WebSocket connection for a user."""
+        """Remove a WebSocket connection."""
         if user_id in self.active_connections:
-            if websocket in self.active_connections[user_id]:
-                self.active_connections[user_id].remove(websocket)
+            self.active_connections[user_id].discard(websocket)
             if not self.active_connections[user_id]:
                 del self.active_connections[user_id]
-        print(f"🔌 WebSocket disconnected for user {user_id[:8]}...")
     
     async def send_to_user(self, user_id: str, message: dict):
-        """Send a message to all connections for a specific user."""
+        """Send message to all connections for a user."""
         if user_id in self.active_connections:
-            disconnected = []
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_json(message)
-                except Exception:
-                    disconnected.append(connection)
-            
-            # Clean up disconnected sockets
-            for conn in disconnected:
-                self.disconnect(conn, user_id)
+                except:
+                    pass  # Connection may be closed
     
-    async def broadcast_status(
-        self,
-        user_id: str,
-        task_id: str,
-        status: str,
-        message: str,
-        progress: int = 0,
-        job_id: str = None,
-        match_score: int = None,
-        error: str = None,
-        total_duration: float = None,
-        job_title: str = None
-    ):
-        """
-        Broadcast a status update to all user's connections.
-        
-        Args:
-            user_id: Target user
-            task_id: Analysis task ID
-            status: Current status (pending, parsing, intel, analyzing, optimizing, complete, failed)
-            message: Human-readable progress message
-            progress: 0-100 progress percentage
-            job_id: Result job ID (on completion)
-            match_score: Match score (on completion)
-            error: Error message (on failure)
-            total_duration: Time taken in seconds (on completion/failure)
-            job_title: Job title (if available)
-        """
-        payload = {
-            "type": "status_update" if status != "complete" and status != "failed" else status,
-            "task_id": task_id,
+    async def broadcast_job_update(self, job_id: str, status: str, data: dict = None):
+        """Broadcast job update to subscribed users."""
+        message = {
+            "type": "job_update",
+            "job_id": job_id,
             "status": status,
-            "message": message,
-            "progress": progress
+            "data": data or {}
         }
-        
-        if job_id:
-            payload["job_id"] = job_id
-        if match_score is not None:
-            payload["match_score"] = match_score
-        if error:
-            payload["error"] = error
-        if total_duration is not None:
-            payload["total_duration"] = total_duration
-        if job_title:
-            payload["job_title"] = job_title
-        
-        await self.send_to_user(user_id, payload)
+        # Send to all connected users (in production, filter by job owner)
+        for user_id in self.active_connections:
+            await self.send_to_user(user_id, message)
 
 
-# Global connection manager instance
+# Global manager
 manager = ConnectionManager()
+
+
+def notify_job_status(job_id: str, status: str, data: dict = None):
+    """
+    Publish job status update to Redis (for Celery workers to call).
+    The WebSocket handler will pick this up and broadcast.
+    """
+    try:
+        r = redis.from_url(REDIS_URL)
+        message = json.dumps({
+            "job_id": job_id,
+            "status": status,
+            "data": data or {}
+        })
+        r.publish("job_updates", message)
+    except Exception as e:
+        print(f"Failed to publish job status: {e}")

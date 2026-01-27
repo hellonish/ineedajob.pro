@@ -1,20 +1,14 @@
 """
-Job Intelligence Package
-Main entry point for company intelligence extraction.
+Job Module - Parse and analyze job postings.
+
+Extracts structured data from job posting text including qualifications, skills, and keywords.
 """
 
-from .extractor import extract_company_intelligence, extract_from_posting, extract_full_job_context
-from .sources.jobs import get_salary_and_stack
-from .sources.website import get_company_info
-from .sources.news import get_news_signals
-from .sources.posting import parse_job_posting
+from .models import JobPosting
+from .parser import JobParser, parse_job_posting
 
 __all__ = [
-    'extract_company_intelligence',
-    'extract_from_posting',
-    'extract_full_job_context',
-    'get_salary_and_stack',
-    'get_company_info',
-    'get_news_signals',
+    'JobPosting',
+    'JobParser',
     'parse_job_posting'
 ]

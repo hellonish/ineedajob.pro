@@ -1,105 +1,66 @@
-# Discrepancy - Profile Source Comparison
+# Discrepancy Engine (`engine/discrepancy`)
 
-Compare resume, LinkedIn, and portfolio to find inconsistencies between sources.
+The **Discrepancy Engine** compares Resume, LinkedIn, and Portfolio profiles to find inconsistencies. It provides a granular comparison table showing the actual values from each source.
 
-## Overview
+## Core Components
 
-Analyzes 3 profile sources to find:
-- Conflicting information (titles, dates, skills)
-- Skills missing from one source but present in others
-- Recommendations to improve consistency
+### 1. `models.py`
+Pydantic schemas for structured output:
+- `ProfileItem` - Single item with values from each source
+- `DiscrepancyItem` - Detailed discrepancy with severity
+- `SkillComparison` - Skills matrix (backward compatible)
+- `ProfileDiscrepancy` - Complete analysis result
 
-Returns UI-friendly JSON for table display.
+### 2. `analyzer.py`
+`DiscrepancyAnalyzer` class for LLM-based analysis:
+- Compares dates, job titles, skills, projects across sources
+- Returns structured `ProfileDiscrepancy` result
 
----
+### 3. `formatter.py`
+`TableFormatter` class for UI-ready output:
+- Comparison table with all items and values
+- Filtered views: mismatches, partial presence
+- Legacy skill and discrepancy tables
+
+### 4. `checker.py`
+Backward-compatible wrapper functions.
 
 ## Usage
 
+### Modern OOP Style
 ```python
-from discrepancy import compare_profile_sources, format_for_table
+from engine.discrepancy import DiscrepancyAnalyzer, TableFormatter
 
-# Compare all 3 sources
-result = compare_profile_sources(
-    resume=resume_data,
-    linkedin=linkedin_data,
-    portfolio=portfolio_data
-)
+analyzer = DiscrepancyAnalyzer()
+result = analyzer.analyze(resume_data, linkedin_data, portfolio_data)
 
-# Format for UI table
-table_data = format_for_table(result)
+formatter = TableFormatter()
+tables = formatter.format_all(result)
+
+# Access the comparison table
+for row in tables['comparison_table']['rows']:
+    print(row)  # [category, field, resume_val, linkedin_val, portfolio_val, status]
 ```
 
----
-
-## Input
-
-- `resume`: Parsed resume data from `profile.parse_profile()`
-- `linkedin`: Parsed LinkedIn profile data
-- `portfolio`: Parsed portfolio data
-
-Need at least 2 sources to compare.
-
----
-
-## Output
-
-```json
-{
-  "consistency_score": 85,
-  "discrepancies": [
-    {
-      "field": "Current Title",
-      "resume": "Senior Engineer",
-      "linkedin": "Lead Engineer",
-      "portfolio": "-",
-      "issue": "Title mismatch between resume and LinkedIn",
-      "severity": "high"
-    }
-  ],
-  "skill_comparison": [
-    {"skill": "Python", "in_resume": true, "in_linkedin": true, "in_portfolio": true},
-    {"skill": "Kubernetes", "in_resume": false, "in_linkedin": true, "in_portfolio": false}
-  ],
-  "missing_in_resume": ["Kubernetes", "GraphQL"],
-  "missing_online": ["Docker Certification"],
-  "recommendations": [
-    "Add Kubernetes to resume",
-    "Update LinkedIn title to match resume"
-  ]
-}
-```
-
----
-
-## UI Table Format
-
+### Backward Compatible Style
 ```python
-table_data = format_for_table(result)
+from engine.discrepancy import compare_profile_sources, format_for_table
 
-# table_data["skill_table"]
-# {
-#   "headers": ["Skill", "Resume", "LinkedIn", "Portfolio"],
-#   "rows": [["Python", "✓", "✓", "✓"], ["Kubernetes", "✗", "✓", "✗"]]
-# }
-
-# table_data["discrepancy_table"]
-# {
-#   "headers": ["Field", "Resume", "LinkedIn", "Portfolio", "Issue", "Severity"],
-#   "rows": [...]
-# }
+result = compare_profile_sources(resume_data, linkedin_data, portfolio_data)
+tables = format_for_table(result)
 ```
 
----
+## Output Format
 
-## Costing
+### Comparison Table
+| Category | Field | Resume | LinkedIn | Portfolio | Status |
+|----------|-------|--------|----------|-----------|--------|
+| job_title | Current Role | Senior Eng | Staff Eng | Lead Eng | ⚠️ Mismatch |
+| date | Company X End | 2023-06 | 2023-08 | - | ⚠️ Mismatch |
+| skill | Python | ✓ | ✓ | - | 📝 Partial |
+| skill | React | ✓ | ✓ | ✓ | ✅ Match |
 
-- **AI Calls**: 1 DeepSeek call
-- **Cost**: ~$0.01
-
----
-
-## Testing
-
-```bash
-python -m discrepancy.tests.test_discrepancy
-```
+### Status Types
+- **✅ Match**: All sources have the same value
+- **⚠️ Mismatch**: Different values across sources
+- **📝 Partial**: Item missing from at least one source

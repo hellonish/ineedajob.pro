@@ -1,54 +1,59 @@
 """
 Test Profile Discrepancy Detector
-Uses actual parsed profile JSON files from profile_extractor/tests/
+Uses profile_data.json containing resume, linkedin, and portfolio data.
 """
 
 import json
 import os
-from engine.discrepancy import compare_profile_sources, format_for_table
+import sys
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, project_root)
+
+# Import directly from discrepancy submodule to avoid engine/__init__.py issues
+from engine.discrepancy.checker import compare_profile_sources
+from engine.discrepancy.formatter import TableFormatter, format_for_table
 
 
 def load_test_profiles():
-    """Load the actual test profile JSON files."""
-    test_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'profile_extractor', 'tests')
+    """Load profiles from profile_data.json."""
+    test_dir = os.path.dirname(__file__)
+    profile_path = os.path.join(test_dir, 'profile_data.json')
     
-    profiles = {}
+    if not os.path.exists(profile_path):
+        print(f"⚠ Profile data not found at {profile_path}")
+        return {}
     
-    # Load resume
-    resume_path = os.path.join(test_dir, 'output_resume.json')
-    if os.path.exists(resume_path):
-        with open(resume_path, 'r') as f:
-            profiles['resume'] = json.load(f)
-        print(f"✓ Loaded resume from {resume_path}")
+    with open(profile_path, 'r') as f:
+        data = json.load(f)
     
-    # Load LinkedIn
-    linkedin_path = os.path.join(test_dir, 'output_linkedin.json')
-    if os.path.exists(linkedin_path):
-        with open(linkedin_path, 'r') as f:
-            profiles['linkedin'] = json.load(f)
-        print(f"✓ Loaded LinkedIn from {linkedin_path}")
+    # The JSON has 'sources' key containing resume, linkedin, portfolio
+    profiles = data.get('sources', {})
     
-    # Load portfolio
-    portfolio_path = os.path.join(test_dir, 'output_portfolio.json')
-    if os.path.exists(portfolio_path):
-        with open(portfolio_path, 'r') as f:
-            profiles['portfolio'] = json.load(f)
-        print(f"✓ Loaded portfolio from {portfolio_path}")
+    loaded = []
+    if profiles.get('resume'):
+        loaded.append('resume')
+    if profiles.get('linkedin'):
+        loaded.append('linkedin')
+    if profiles.get('portfolio'):
+        loaded.append('portfolio')
     
+    print(f"✓ Loaded profiles: {', '.join(loaded)}")
     return profiles
 
 
 def test_discrepancy():
-    """Test discrepancy detection with actual profile data."""
+    """Test discrepancy detection with profile_data.json."""
     print(f"\n{'='*70}")
     print("Testing Profile Discrepancy Detector")
     print(f"{'='*70}\n")
     
-    # Load actual test profiles
+    # Load profiles from profile_data.json
     profiles = load_test_profiles()
     
     if len(profiles) < 2:
-        print("⚠ Need at least 2 profile files. Available:", list(profiles.keys()))
+        print("⚠ Need at least 2 profile sources. Available:", list(profiles.keys()))
         return None
     
     print(f"\n📄 Comparing {len(profiles)} profiles: {list(profiles.keys())}")
@@ -71,10 +76,41 @@ def test_discrepancy():
     
     print(f"📊 Consistency Score: {result.get('consistency_score', 0)}%\n")
     
-    # Discrepancies
+    # NEW: Comparison Table
+    comparison_table = result.get('comparison_table', [])
+    if comparison_table:
+        print(f"\n📊 Comparison Table ({len(comparison_table)} items):")
+        print(f"{'Category':<15} {'Field':<25} {'Resume':<15} {'LinkedIn':<15} {'Portfolio':<15} {'Status':<10}")
+        print("-" * 95)
+        for item in comparison_table[:20]:  # Show first 20
+            print(f"{item.get('category', ''):<15} {item.get('field', '')[:24]:<25} "
+                  f"{(item.get('resume_value', '') or '-')[:14]:<15} "
+                  f"{(item.get('linkedin_value', '') or '-')[:14]:<15} "
+                  f"{(item.get('portfolio_value', '') or '-')[:14]:<15} "
+                  f"{item.get('status', ''):<10}")
+    
+    # Mismatches
+    mismatches = result.get('mismatches', [])
+    if mismatches:
+        print(f"\n⚠️ Mismatches ({len(mismatches)} items):")
+        for item in mismatches:
+            print(f"  • {item.get('field')}: R='{item.get('resume_value', '-')}' | "
+                  f"L='{item.get('linkedin_value', '-')}' | P='{item.get('portfolio_value', '-')}'")
+    
+    # Partial presence
+    partial = result.get('partial_presence', [])
+    if partial:
+        print(f"\n📝 Partial Presence ({len(partial)} items missing from at least one source):")
+        for item in partial[:10]:
+            r = "✓" if item.get('resume_value') else "✗"
+            l = "✓" if item.get('linkedin_value') else "✗"
+            p = "✓" if item.get('portfolio_value') else "✗"
+            print(f"  • {item.get('field')}: Resume={r} | LinkedIn={l} | Portfolio={p}")
+    
+    # Discrepancies with severity
     discrepancies = result.get('discrepancies', [])
     if discrepancies:
-        print(f"⚠ Discrepancies Found ({len(discrepancies)}):")
+        print(f"\n⚠ Detailed Discrepancies ({len(discrepancies)}):")
         for d in discrepancies:
             print(f"\n  📌 {d.get('field', 'Unknown')} [{d.get('severity', 'low').upper()}]")
             print(f"     Resume: {d.get('resume', '-')}")
@@ -82,12 +118,12 @@ def test_discrepancy():
             print(f"     Portfolio: {d.get('portfolio', '-')}")
             print(f"     Issue: {d.get('issue', '')}")
     else:
-        print("✅ No major discrepancies found!")
+        print("\n✅ No major discrepancies found!")
     
-    # Skill comparison
+    # Skill comparison (legacy)
     skills = result.get('skill_comparison', [])
     if skills:
-        print(f"\n\n💡 Skill Comparison:")
+        print(f"\n\n💡 Skill Comparison ({len(skills)} skills):")
         print(f"{'Skill':<25} {'Resume':<10} {'LinkedIn':<10} {'Portfolio':<10}")
         print("-" * 55)
         for s in skills[:15]:
@@ -95,19 +131,6 @@ def test_discrepancy():
             l = "✓" if s.get('in_linkedin') else "✗"
             p = "✓" if s.get('in_portfolio') else "✗"
             print(f"{s.get('skill', ''):<25} {r:<10} {l:<10} {p:<10}")
-    
-    # Missing items
-    missing_resume = result.get('missing_in_resume', [])
-    if missing_resume:
-        print(f"\n📝 Missing in Resume (consider adding):")
-        for item in missing_resume:
-            print(f"  • {item}")
-    
-    missing_online = result.get('missing_online', [])
-    if missing_online:
-        print(f"\n🌐 Missing from Online Presence:")
-        for item in missing_online:
-            print(f"  • {item}")
     
     # Recommendations
     recs = result.get('recommendations', [])
@@ -117,7 +140,8 @@ def test_discrepancy():
             print(f"  • {rec}")
     
     # Format for table (UI)
-    table_data = format_for_table(result)
+    formatter = TableFormatter()
+    table_data = formatter.format_all(result)
     
     # Save outputs
     output_dir = os.path.dirname(__file__)
