@@ -1,17 +1,35 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.pyw
-*.pyz
-*.pywz
-*.pyzz
-*.pywzz
-*.pyzzz
-*.pywzzz
-*.pyzzzz
-*.pywzzzz
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
 # Environment variables
 .env
@@ -25,8 +43,18 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.coverage
-.coverage.*
-.coverage.*.*
-.coverage.*.*.*
-.coverage.*.*.*.*
+.dmypy.json
+dmypy.json
+
+# Output files from testing
+*_phase1.json
+*_phase2.json
+*_phase3.json
+google_phase*.json
+stripe_phase*.json
+shipday_phase*.json
+
+# Temporary files
+*.tmp
+*.bak
+.gstack/

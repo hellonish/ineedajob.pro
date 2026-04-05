@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* ─── Light theme (default) ─────────────────────────────────────────────────── */
+:root {
+  --bg:            #f4f3ee;   /* 244, 243, 238 — warm off-white base     */
+  --surface:       #eceae4;   /* slightly darker surface                  */
+  --card:          #ffffff;   /* pure white cards                         */
+  --hover:         #e8e6e0;   /* hover state                              */
+  --border:        #d4d1ca;   /* subtle warm border                       */
+  --border-strong: #b1ada1;   /* 177, 173, 161 — warm medium gray         */
+
+  --text-1:        #1e1a16;   /* dark warm ink                            */
+  --text-2:        #6e6860;   /* medium warm gray                         */
+  --text-3:        #b1ada1;   /* 177, 173, 161 — muted, same as border    */
+
+  --accent:        #c15f3c;   /* 193, 95, 60 — terracotta                 */
+  --accent-dim:    rgba(193, 95, 60, 0.08);
+  --accent-border: rgba(193, 95, 60, 0.3);
+
+  /* Legacy aliases */
+  --bg-primary:    var(--bg);
+  --bg-secondary:  var(--surface);
+  --text-primary:  var(--text-1);
+  --text-secondary:var(--text-2);
+  --text-muted:    var(--text-3);
+  --card-bg:       var(--card);
+  --border-color:  var(--border);
+}
+
+/* ─── Dark theme — same warmth inverted ─────────────────────────────────────── */
+.dark {
+  --bg:            #1c1916;
+  --surface:       #232018;
+  --card:          #2c2820;
+  --hover:         #332f26;
+  --border:        #3e3a30;
+  --border-strong: #524d42;
+
+  --text-1:        #f0ede6;   /* warm cream — mirrors f4f3ee warmth       */
+  --text-2:        #a8a098;   /* warm medium — mirrors b1ada1             */
+  --text-3:        #6a6458;
+
+  --accent:        #d4785a;   /* terracotta lightened for dark readability */
+  --accent-dim:    rgba(212, 120, 90, 0.09);
+  --accent-border: rgba(212, 120, 90, 0.32);
+
+  --bg-primary:    var(--bg);
+  --bg-secondary:  var(--surface);
+  --text-primary:  var(--text-1);
+  --text-secondary:var(--text-2);
+  --text-muted:    var(--text-3);
+  --card-bg:       var(--card);
+  --border-color:  var(--border);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+html,
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ─── Text utility classes ──────────────────────────────────────────────────── */
+.t1 { color: var(--text-1); }
+.t2 { color: var(--text-2); }
+.t3 { color: var(--text-3); }

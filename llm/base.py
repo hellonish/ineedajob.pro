@@ -1,55 +1,42 @@
-"""Base LLM client interface.
+"""
+Abstract base class for LLM providers.
 
-Defines the abstract contract for LLM providers. All provider-specific clients
-(OpenAIClient, AnthropicClient, GeminiClient, DeepSeekClient) implement
-generate() and generate_structured() so callers can swap providers without changing code.
+All LLM providers (DeepSeek, Gemini, Grok, etc.) should inherit from
+BaseLLMProvider and implement the get_client() method.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 
-Message = dict[str, str]
-"""Single chat message: {"role": "user"|"assistant"|"system", "content": "..."}."""
+class BaseLLMProvider(ABC):
+    """Abstract base class for LLM provider wrappers."""
 
-
-class BaseLlmClient(ABC):
-    """Abstract LLM client. Subclasses implement generate() and generate_structured()."""
-
-    @abstractmethod
-    def generate(
-        self,
-        messages: list[Message],
-        model: str | None = None,
-        **kwargs: Any,
-    ) -> str:
-        """Generate a single non-streaming completion.
-
-        Args:
-            messages: Chat history; each item has "role" and "content".
-            model: Model name; uses client default if None.
-            **kwargs: Provider-specific options (e.g. max_tokens, temperature).
-
-        Returns:
-            Generated text from the assistant.
-        """
-        pass
+    def __init__(self, api_key: Optional[str] = None, env_var: str = ""):
+        self._api_key = api_key
+        self._env_var = env_var
+        self._client = None
 
     @abstractmethod
-    def generate_structured(
-        self,
-        messages: list[Message],
-        model: str | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Generate a completion constrained to valid JSON; returns parsed dict.
-
-        Args:
-            messages: Chat history; each item has "role" and "content".
-            model: Model name; uses client default if None.
-            **kwargs: Provider-specific options (e.g. max_tokens, temperature).
-
-        Returns:
-            Parsed JSON object from the assistant response.
+    def get_client(self) -> Any:
         """
-        pass
+        Return the instructor-wrapped OpenAI client for this provider.
+
+        Raises:
+            ValueError: If no API key is available.
+        """
+        ...
+
+    def _resolve_api_key(self) -> str:
+        import os
+        from dotenv import load_dotenv
+
+        load_dotenv()
+
+        key = self._api_key or os.getenv(self._env_var, "")
+        if not key:
+            raise ValueError(
+                f"{self._env_var} not found. "
+                f"Set it in .env file or pass api_key to the constructor."
+            )
+        return key
