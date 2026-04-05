@@ -1,0 +1,14 @@
+Dear Hiring Manager,
+
+I am excited to apply for the Technology Associate Rotational Program at Lord Abbett. Having followed Lord Abbett's leadership in asset management, particularly its focus on active management and technological agility, I am confident that my skills and enthusiasm align perfectly with this opportunity. I am eager to contribute to critical business initiatives while expanding my expertise in a fast-paced environment.
+
+As a Co-Founder and Technical Lead at multiple startups, including InGelt Board and Macverin Technologies, I have experience architecting scalable cloud-native platforms on AWS and managing the full SDLC. At InGelt Board, I designed a multi-tenant platform supporting real-time group chat and live streaming. Further, as a Machine Learning Teaching Assistant at NYU, I have honed my ability to explain complex technical concepts, creating YouTube videos and holding office hours to assist students with their assignments.
+
+My technical skillset aligns well with the requirements of this role, including proficiency in programming languages such as Python, Java, and JavaScript. I also possess a foundational understanding of cloud platforms (AWS), databases, and APIs. I am committed to learning new technologies quickly and eager to apply these skills within Lord Abbett's technology organization, especially in areas like DevOps, cloud security, and application security.
+
+Lord Abbett's commitment to being the most respected asset manager, admired for its people and organizational agility, deeply resonates with my own values. I am particularly drawn to the opportunity to apply technology to real business challenges within the asset management industry. I am impressed by Lord Abbett’s focus on active management and delivering alpha for clients, and I am motivated to contribute to this mission.
+
+Thank you for considering my application. I am eager to learn more about this opportunity and discuss how my skills and experiences can benefit Lord Abbett. I look forward to the possibility of an interview.
+
+Best regards,
+Nishant Sharma
