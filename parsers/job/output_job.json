@@ -1,0 +1,99 @@
+{
+  "job_title": "AI for Chip Design Intern - Summer 2026",
+  "company": {
+    "name": "NVIDIA",
+    "about": "NVIDIA is a computing platform company operating at the intersection of graphics, HPC, and AI.",
+    "founded_year": 1993,
+    "headquarters": "Santa Clara, California, USA",
+    "employee_count": "10001+ employees",
+    "glassdoor_rating": 4.6,
+    "website": "https://www.nvidia.com",
+    "funding_info": {
+      "stage": "Public Company",
+      "total_funding_amount": "$4.09B",
+      "key_investors": [
+        "ARPA-E",
+        "ARK Investment Management",
+        "SoftBank Vision Fund"
+      ],
+      "recent_events": [
+        "Grant· $5M",
+        "Post Ipo Equity· $65M",
+        "Post Ipo Equity"
+      ]
+    },
+    "leadership_team": [
+      {
+        "name": "Jensen Huang",
+        "role": "Founder and CEO"
+      },
+      {
+        "name": "Michael Kagan",
+        "role": "Chief Technology Officer"
+      }
+    ],
+    "recent_news": [
+      {
+        "title": "Nvidia sets $4 million target cash bonus for CEO Huang under fiscal 2027 plan",
+        "source": "Investing.com",
+        "date": "2026-03-07"
+      }
+    ]
+  },
+  "location": "Santa Clara, CA",
+  "url": null,
+  "posted_at": null,
+  "job_type": "Internship",
+  "work_model": "Onsite",
+  "experience_level": "Intern",
+  "compensation": null,
+  "about_the_role": "This role involves developing algorithms for AI applications in chip design and engaging with the latest advancements in machine learning and AI.",
+  "responsibilities": [
+    "Develop and optimize retrieval and generation algorithms for enterprise data (text, code, and images) to build advanced AI applications that transform chip design",
+    "Drive impact by designing and deploying LLM-powered solutions for engineering assistants and multi-turn, multi-modal dialogue systems",
+    "Make a difference by leveraging AI technologies to solve complex problems in chip design, driving innovation and meaningful impact across the industry",
+    "Join a dynamic, collaborative team where creativity and fresh ideas are encouraged",
+    "Stay ahead by engaging with the latest advancements in machine learning and AI to create state-of-the-art solutions",
+    "Lead with purpose and maintain high-quality engineering practices that inspire others to achieve excellence"
+  ],
+  "qualifications_required": [
+    "Pursuing BS or MS in Electrical Engineering, Computer Science/Engineering, or a related subject area",
+    "Proficiency in rapid prototyping using languages like Python (preferred), with strong foundational knowledge of data structures, algorithms, and software engineering principles",
+    "Familiarity with large language models, advanced Retrieval-Augmented Generation (RAG) pipelines, vector databases and agentic frameworks",
+    "Strong analytical, communication, and interpersonal skills, with a proven track record to thrive in dynamic, product-focused, and distributed teams",
+    "A proactive approach to problem-solving and a willingness to acquire new skills and knowledge as needed to achieve results"
+  ],
+  "qualifications_preferred": [
+    "Proficiency in rapid prototyping using languages like Python"
+  ],
+  "skills_tags": [
+    "Python",
+    "Large language models",
+    "Data structures",
+    "Algorithms",
+    "Software engineering principles",
+    "Analytical skills"
+  ],
+  "benefits": [
+    "Intern benefits"
+  ],
+  "application_instructions": null,
+  "h1b_sponsorship": {
+    "likely_sponsor": true,
+    "historical_trends": {
+      "2025": 1877,
+      "2024": 1355,
+      "2023": 976,
+      "2022": 835,
+      "2021": 601,
+      "2020": 529
+    }
+  },
+  "platform_metadata": {
+    "match_percentage": 97,
+    "exp_level_match": 100,
+    "skill_match": 99,
+    "industry_exp_match": 72,
+    "insider_connections_count": 5
+  }
+}
