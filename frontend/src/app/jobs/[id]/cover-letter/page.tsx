@@ -100,7 +100,10 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
-        const text = isEditing ? editedText : (coverLetter?.content?.full_letter || coverLetter?.content?.letter_text);
+        const raw = isEditing
+            ? editedText
+            : coverLetter?.content?.full_letter || coverLetter?.content?.letter_text;
+        const text = typeof raw === "string" ? raw : "";
         if (!text) return;
         await navigator.clipboard.writeText(text);
         setCopied(true);
@@ -138,7 +141,8 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
     };
 
     const handleDownload = () => {
-        const text = coverLetter?.content?.full_letter || coverLetter?.content?.letter_text;
+        const raw = coverLetter?.content?.full_letter || coverLetter?.content?.letter_text;
+        const text = typeof raw === "string" ? raw : "";
         if (!text || !job) return;
 
         // Dynamically import jsPDF
@@ -375,7 +379,15 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                                     ) : (
                                         <div className="prose prose-sm max-w-none prose-p:my-3 prose-p:text-gray-800 prose-headings:text-gray-900 prose-strong:text-gray-900">
                                             <ReactMarkdown>
-                                                {coverLetter.content.full_letter || coverLetter.content.letter_text || ""}
+                                                {(() => {
+                                                    const fl = coverLetter.content.full_letter;
+                                                    const lt = coverLetter.content.letter_text;
+                                                    return typeof fl === "string"
+                                                        ? fl
+                                                        : typeof lt === "string"
+                                                          ? lt
+                                                          : "";
+                                                })()}
                                             </ReactMarkdown>
                                         </div>
                                     )}
