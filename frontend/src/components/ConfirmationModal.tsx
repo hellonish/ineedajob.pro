@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface ConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
     title: string;
     message: string;
     confirmLabel?: string;
@@ -26,6 +26,9 @@ export default function ConfirmationModal({
     isDestructive = false
 }: ConfirmationModalProps) {
     const [mounted, setMounted] = useState(false);
+    const [cancelHovered, setCancelHovered] = useState(false);
+    const [confirmHovered, setConfirmHovered] = useState(false);
+    const [confirmWorking, setConfirmWorking] = useState(false);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -34,6 +37,18 @@ export default function ConfirmationModal({
     }, []);
 
     if (!mounted) return null;
+
+    const confirmStyle: React.CSSProperties = isDestructive
+        ? {
+            background: confirmHovered ? 'rgba(248,113,113,0.2)' : 'rgba(248,113,113,0.12)',
+            color: '#f87171',
+            border: confirmHovered ? '1px solid #f87171' : '1px solid rgba(248,113,113,0.25)',
+        }
+        : {
+            background: confirmHovered ? 'rgba(149,128,255,0.15)' : 'var(--accent-dim)',
+            color: 'var(--accent)',
+            border: '1px solid var(--accent-border)',
+        };
 
     return createPortal(
         <AnimatePresence>
@@ -45,44 +60,78 @@ export default function ConfirmationModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]"
+                        className="fixed inset-0 z-[9999]"
+                        style={{ background: 'rgba(0,0,0,0.65)' }}
                     />
 
                     {/* Modal */}
                     <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-2xl w-full max-w-sm pointer-events-auto overflow-hidden bg-[#111118]"
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.97 }}
+                            className="pointer-events-auto w-full overflow-hidden"
+                            style={{
+                                background: 'var(--card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '10px',
+                                maxWidth: '360px',
+                            }}
                         >
-                            <div className="p-6">
-                                <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">
+                            {/* Content */}
+                            <div className="px-5 pt-5 pb-4">
+                                <h3
+                                    className="text-base font-medium"
+                                    style={{ color: 'var(--text-1)' }}
+                                >
                                     {title}
                                 </h3>
-                                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                                <p
+                                    className="text-sm leading-relaxed mt-1"
+                                    style={{ color: 'var(--text-2)' }}
+                                >
                                     {message}
                                 </p>
                             </div>
 
-                            <div className="bg-[var(--bg-secondary)/50] px-6 py-4 flex gap-3 justify-end border-t border-[var(--border-color)]">
+                            {/* Footer */}
+                            <div
+                                className="flex justify-end gap-2 px-5 py-4"
+                                style={{ borderTop: '1px solid var(--border)' }}
+                            >
                                 <button
                                     onClick={onClose}
-                                    className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors cursor-pointer"
+                                    onMouseEnter={() => setCancelHovered(true)}
+                                    onMouseLeave={() => setCancelHovered(false)}
+                                    className="text-sm px-3 py-1.5 rounded-md cursor-pointer transition-colors"
+                                    style={{
+                                        color: cancelHovered ? 'var(--text-1)' : 'var(--text-2)',
+                                        background: cancelHovered ? 'var(--hover)' : 'transparent',
+                                        border: 'none',
+                                    }}
                                 >
                                     {cancelLabel}
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        onConfirm();
-                                        onClose();
+                                    type="button"
+                                    disabled={confirmWorking}
+                                    onClick={async () => {
+                                        setConfirmWorking(true);
+                                        try {
+                                            await Promise.resolve(onConfirm());
+                                            onClose();
+                                        } catch {
+                                            /* Caller may toast; keep modal open */
+                                        } finally {
+                                            setConfirmWorking(false);
+                                        }
                                     }}
-                                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-lg transition-all transform hover:scale-105 cursor-pointer ${isDestructive
-                                        ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
-                                        : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'
-                                        }`}
+                                    onMouseEnter={() => setConfirmHovered(true)}
+                                    onMouseLeave={() => setConfirmHovered(false)}
+                                    className="text-sm px-3 py-1.5 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={confirmStyle}
                                 >
-                                    {confirmLabel}
+                                    {confirmWorking ? '…' : confirmLabel}
                                 </button>
                             </div>
                         </motion.div>

@@ -3,7 +3,7 @@ Database Configuration
 """
 
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -21,7 +21,30 @@ connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Enable WAL mode for SQLite so background tasks don't lock out all other requests
+if "sqlite" in DATABASE_URL:
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.execute(text("PRAGMA busy_timeout=5000"))
 Base = declarative_base()
+
+
+def ensure_sqlite_schema(bind_engine):
+    """
+    Apply lightweight SQLite upgrades for DBs created before new ORM columns existed.
+    Base.metadata.create_all() creates tables but does not ALTER existing tables.
+    """
+    if "sqlite" not in str(bind_engine.url):
+        return
+    with bind_engine.begin() as conn:
+        rows = conn.execute(text("PRAGMA table_info(cover_letters)")).fetchall()
+        if not rows:
+            return
+        col_names = {r[1] for r in rows}
+        if "custom_prompt" in col_names:
+            return
+        conn.execute(text("ALTER TABLE cover_letters ADD COLUMN custom_prompt TEXT"))
 
 
 def get_db():

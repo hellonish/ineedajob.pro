@@ -69,3 +69,4 @@ shipday_phase*.json
 # Temporary files
 *.tmp
 *.bak
+.gstack/

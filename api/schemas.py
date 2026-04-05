@@ -21,11 +21,11 @@ class JobStatusEnum(str, Enum):
 
 
 class CoverLetterModeEnum(str, Enum):
-    professional = "professional"
-    conversational = "conversational"
-    concise = "concise"
-    creative = "creative"
-    storytelling = "storytelling"
+    storyline = "storyline"
+    disruptive = "disruptive"
+    regular = "regular"
+    auto = "auto"
+    custom = "custom"
 
 
 # User Schemas
@@ -37,6 +37,8 @@ class UserBase(BaseModel):
 
 class UserResponse(UserBase):
     id: UUID
+    llm_provider: Optional[str] = None
+    llm_model: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -46,6 +48,8 @@ class UserResponse(UserBase):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     profile_picture: Optional[str] = None
+    llm_provider: Optional[str] = None
+    llm_model: Optional[str] = None
 
 
 # Auth Schemas
@@ -57,9 +61,8 @@ class TokenResponse(BaseModel):
 
 # Job Schemas
 class JobCreate(BaseModel):
-    job_posting: Dict[str, Any]
-    resume: Dict[str, Any]
-    unified_profile: Optional[Dict[str, Any]] = None
+    jd_text: str
+    company_website: Optional[str] = None
 
 
 class JobUpdate(BaseModel):
@@ -85,9 +88,11 @@ class JobResponse(BaseModel):
     status: JobStatusEnum
     user_notes: Optional[str] = None
     resume_history: List[ResumeHistoryResponse] = []
+    company_website: Optional[str] = None
+    joblens_session_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -97,8 +102,10 @@ class JobListResponse(BaseModel):
     job_posting: Dict[str, Any]
     status: JobStatusEnum
     final_score: Optional[float] = None
+    company_website: Optional[str] = None
+    joblens_session_id: Optional[str] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -121,7 +128,11 @@ class ReEvaluateResponse(BaseModel):
 # Cover Letter Schemas
 class CoverLetterCreate(BaseModel):
     job_id: Optional[UUID] = None
-    mode: CoverLetterModeEnum = CoverLetterModeEnum.professional
+    mode: CoverLetterModeEnum = CoverLetterModeEnum.regular
+    custom_prompt: Optional[str] = None
+    include_news: bool = False
+    jd_text: Optional[str] = None
+    company_name: Optional[str] = None
 
 
 class CoverLetterUpdate(BaseModel):
@@ -174,22 +185,26 @@ class NewsResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     id: UUID
     user_id: str
-    
+
     # File Paths (Nullable)
     resume_path: Optional[str] = None
     linkedin_path: Optional[str] = None
     portfolio_path: Optional[str] = None
-    
+
     # Parsed Data (Nullable)
     resume_data: Optional[Dict[str, Any]] = None
     linkedin_data: Optional[Dict[str, Any]] = None
     portfolio_data: Optional[Dict[str, Any]] = None
-    
+
     # Final Profile
     unified_profile: Optional[Dict[str, Any]] = None
-    
+
+    # JobLens
+    extracted_profile: Optional[Dict[str, Any]] = None
+    additional_context: Optional[str] = None
+
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -197,3 +212,84 @@ class ProfileUploadResponse(BaseModel):
     file_type: str
     filename: str
     parsed_data: Dict[str, Any]
+
+
+class JDToneAnalysisResponse(BaseModel):
+    recommended_mode: str
+    confidence: float
+    tone_signals: List[str]
+    culture_indicators: List[str]
+    formality_level: str
+    industry: str
+    reasoning: str
+
+
+class ProviderModelInfo(BaseModel):
+    default_model: str
+    models: List[str]
+
+
+class AvailableProvidersResponse(BaseModel):
+    providers: Dict[str, ProviderModelInfo]
+
+
+# ============================================================================
+# JobLens Schemas
+# ============================================================================
+
+class JobLensSessionCreate(BaseModel):
+    job_id: Optional[UUID] = None
+
+class JobLensSessionResponse(BaseModel):
+    id: UUID
+    job_id: Optional[UUID] = None
+    extracted_profile: Optional[Dict[str, Any]] = None
+    parsed_jd: Optional[Dict[str, Any]] = None
+    company_intel: Optional[Dict[str, Any]] = None
+    match_analysis: Optional[Dict[str, Any]] = None
+    contact_strategy: Optional[Dict[str, Any]] = None
+    action_plan: Optional[Dict[str, Any]] = None
+    raw_jd_text: Optional[str] = None
+    company_website: Optional[str] = None
+    current_step: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ExtractProfileRequest(BaseModel):
+    portfolio_notes: Optional[str] = None
+
+class ParseJDRequest(BaseModel):
+    jd_text: str
+    job_id: Optional[UUID] = None
+
+class CompanyIntelRequest(BaseModel):
+    company_name: str
+    company_website: Optional[str] = None
+    additional_notes: Optional[str] = None
+
+class MatchAnalysisRequest(BaseModel):
+    pass  # No extra input needed, uses session data
+
+class ContactStrategyRequest(BaseModel):
+    pass  # No extra input needed, uses session data
+
+class ActionPlanRequest(BaseModel):
+    pass  # No extra input needed, uses session data
+
+class RunPipelineRequest(BaseModel):
+    """Trigger the full 6-step JobLens pipeline on an existing session."""
+    pass  # Session already has jd_text and company_website stored
+
+class AdditionalContextUpdate(BaseModel):
+    additional_context: str
+
+class JobTrackCreate(BaseModel):
+    """Create a simple tracked job without running the AI pipeline."""
+    job_title: str
+    company_name: str
+    job_url: Optional[str] = None
+    location: Optional[str] = None
+    status: Optional[str] = "tracked"

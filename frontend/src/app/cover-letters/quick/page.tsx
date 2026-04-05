@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/utils/store';
-import { api, Job, CoverLetter, JDToneAnalysis } from '@/utils/api';
+import { api, CoverLetter, JDToneAnalysis } from '@/utils/api';
 import Header from '@/components/Header';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -16,12 +16,15 @@ const MODES = [
     { id: 'custom', label: 'Custom Prompt', desc: 'Write your intent — AI enhances it' },
 ];
 
-export default function CoverLetterPage({ params }: { params: Promise<{ id: string }> }) {
+export default function QuickCoverLetterPage() {
     const router = useRouter();
-    const { id } = use(params);
+    const searchParams = useSearchParams();
     const { token, isAuthenticated, _hasHydrated } = useStore();
 
-    const [job, setJob] = useState<Job | null>(null);
+    const viewLetterId = searchParams.get('view');
+
+    const [jdText, setJdText] = useState('');
+    const [companyName, setCompanyName] = useState('');
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [selectedMode, setSelectedMode] = useState('auto');
@@ -33,58 +36,76 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState('');
     const [saving, setSaving] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const [toneAnalysis, setToneAnalysis] = useState<JDToneAnalysis | null>(null);
     const [analyzingTone, setAnalyzingTone] = useState(false);
 
     useEffect(() => {
         if (!_hasHydrated) return;
-        if (!token) {
-            router.push('/');
-            return;
+        if (!token) { router.push('/'); return; }
+        initPage();
+    }, [token, _hasHydrated]);
+
+    const initPage = async () => {
+        if (viewLetterId) {
+            // View existing cover letter
+            try {
+                const letter = await api.getCoverLetter(viewLetterId);
+                setCoverLetter(letter);
+                setSelectedMode(letter.mode);
+                setCompanyName(
+                    (letter.content as Record<string, unknown>)?.company_name as string || ''
+                );
+                setJdText(
+                    (letter.content as Record<string, unknown>)?.raw_jd as string || ''
+                );
+                // Load history for this "session" (all no-job letters)
+                const allLetters = await api.getCoverLetters().catch(() => []);
+                const noJobLetters = allLetters
+                    .filter(l => !l.job_id)
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                setHistory(noJobLetters);
+            } catch {
+                router.replace('/cover-letters');
+                return;
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            // New quick cover letter from sessionStorage
+            const storedJd = sessionStorage.getItem('quick_jd_text') || '';
+            const storedCompany = sessionStorage.getItem('quick_company_name') || '';
+            if (!storedJd) {
+                router.replace('/cover-letters');
+                return;
+            }
+            setJdText(storedJd);
+            setCompanyName(storedCompany);
+            // Clean up sessionStorage
+            sessionStorage.removeItem('quick_jd_text');
+            sessionStorage.removeItem('quick_company_name');
+            setLoading(false);
         }
-        loadData();
-    }, [id, token, _hasHydrated]);
+    };
 
     useEffect(() => {
-        if (selectedMode === 'auto' && job) {
+        if (selectedMode === 'auto' && jdText) {
             handleAnalyzeTone();
         } else {
             setToneAnalysis(null);
         }
     }, [selectedMode]);
 
-    const loadData = async () => {
-        try {
-            const jobData = await api.getJob(id, true);
-            if (!jobData) {
-                router.replace('/jobs');
-                return;
-            }
-            setJob(jobData as Job);
-
-            const letters = await api.getCoverLetters().catch(() => []);
-            const jobLetters = letters.filter(l => l.job_id === id).sort((a, b) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-
-            setHistory(jobLetters);
-            if (jobLetters.length > 0) {
-                setCoverLetter(jobLetters[0]);
-                setSelectedMode(jobLetters[0].mode);
-            }
-        } catch {
-            router.push('/jobs');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleAnalyzeTone = async () => {
         setAnalyzingTone(true);
         setToneAnalysis(null);
         try {
-            const result = await api.analyzeJDTone({ job_id: id });
+            const result = await api.analyzeJDTone({
+                jd_text: jdText,
+                company_name: companyName || undefined,
+                mode: 'auto',
+            });
             setToneAnalysis(result);
         } catch {
             setToneAnalysis(null);
@@ -102,7 +123,8 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
         setGenerating(true);
         try {
             const result = await api.createCoverLetter({
-                job_id: id,
+                jd_text: jdText,
+                company_name: companyName || undefined,
                 mode: selectedMode,
                 custom_prompt: selectedMode === 'custom' ? customPrompt : undefined,
                 include_news: includeNews,
@@ -115,8 +137,6 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
             setGenerating(false);
         }
     };
-
-    const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
         const raw = isEditing
@@ -158,7 +178,7 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
     const handleDownload = () => {
         const raw = coverLetter?.content?.full_letter;
         const text = typeof raw === "string" ? raw : "";
-        if (!text || !job) return;
+        if (!text) return;
 
         import('jspdf').then(({ jsPDF }) => {
             const doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
@@ -185,17 +205,17 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                 y += lineHeight;
             });
 
-            const companyName = job.job_posting?.company_name?.replace(/[^a-z0-9]/gi, '_') || 'company';
-            doc.save(`Cover_Letter_${companyName}.pdf`);
+            const name = companyName?.replace(/[^a-z0-9]/gi, '_') || 'quick';
+            doc.save(`Cover_Letter_${name}.pdf`);
         });
     };
 
-    if (!_hasHydrated || !isAuthenticated || loading || !job) {
+    if (!_hasHydrated || !isAuthenticated || loading) {
         return (
-            <div className="min-h-screen">
+            <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
                 <Header />
                 <div className="flex items-center justify-center h-[80vh]">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
                 </div>
             </div>
         );
@@ -211,10 +231,10 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                 {/* Header Actions */}
                 <div className="flex items-center justify-between mb-8 print:hidden">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/cover-letters')}
                         className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors cursor-pointer"
                     >
-                        &larr; Back to Job
+                        &larr; Back to Cover Letters
                     </button>
                     {coverLetter && (
                         <div className="flex gap-2">
@@ -256,10 +276,12 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                     {/* Controls Column */}
                     <div className="print:hidden space-y-6">
                         <div>
-                            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Cover Letter</h1>
-                            <p className="text-[var(--text-secondary)]">
-                                For <span className="font-semibold text-indigo-400">{job.job_posting.company_name}</span>
-                            </p>
+                            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Quick Cover Letter</h1>
+                            {companyName && (
+                                <p className="text-[var(--text-secondary)]">
+                                    For <span className="font-semibold text-indigo-400">{companyName}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-5">
@@ -357,7 +379,7 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                         </div>
 
                         {/* History List */}
-                        {history.length > 0 && (
+                        {history.length > 1 && (
                             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-5 overflow-hidden">
                                 <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">History</h3>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">

@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import "./globals.css";
+import { Inter } from 'next/font/google';
 import { useStore } from '@/utils/store';
 import { useGlobalWebSocket } from '@/hooks/useGlobalWebSocket';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export default function RootLayout({
   children,
@@ -13,20 +20,13 @@ export default function RootLayout({
   const { theme, _hasHydrated, token, isAuthenticated, fetchUser } = useStore();
   const [mounted, setMounted] = useState(false);
 
-  // Global WebSocket connection
   useGlobalWebSocket();
 
-  // Wait for client mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Global session check
   useEffect(() => {
-    if (_hasHydrated && token && !isAuthenticated) {
-      // Double check: store might need to catch up if we just set it in rehydrate
-      // But fetchUser is safe to call
-    }
     if (_hasHydrated && token && useStore.getState().user === null) {
       fetchUser();
     }
@@ -34,16 +34,16 @@ export default function RootLayout({
 
   useEffect(() => {
     if (!mounted) return;
-    // Apply theme class to document
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   }, [theme, mounted]);
 
   return (
-    <html lang="en" className={mounted && theme === 'light' ? 'light' : ''}>
+    <html lang="en" className={`${inter.variable} ${mounted && theme === 'dark' ? 'dark' : ''}`}>
       <head>
         <title>Wand - AI Resume Analyzer</title>
         <meta name="description" content="Analyze your resume against job postings with AI-powered insights" />

@@ -5,42 +5,36 @@ Compares Resume, LinkedIn, and Portfolio profiles to find inconsistencies.
 """
 
 from typing import Dict, List, Optional
-from engine.models import get_gemini_client
+from engine.models.llm import LLMClient
 from .models import ProfileDiscrepancy
 
 
 class DiscrepancyAnalyzer:
     """
     Analyzes profile discrepancies using LLM.
-    
+
     Compares Resume, LinkedIn, and Portfolio to identify:
     - Mismatches: Different values for the same field
     - Partial presence: Items missing from some sources
     - Full consistency: Items that match across all sources
-    
+
     Example:
-        >>> analyzer = DiscrepancyAnalyzer()
+        >>> from engine.models.llm import LLMClient
+        >>> llm = LLMClient.from_user_settings({"llm_provider": "grok", "llm_model": "grok-3"})
+        >>> analyzer = DiscrepancyAnalyzer(llm)
         >>> result = analyzer.analyze(resume_data, linkedin_data, portfolio_data)
         >>> print(result.consistency_score)
     """
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(self, llm: LLMClient):
         """
-        Initialize the analyzer with optional API key.
-        
+        Initialize the analyzer with an LLM client.
+
         Args:
-            api_key: DeepSeek API key (defaults to DEEPSEEK_API_KEY env var)
+            llm: LLMClient instance (created via LLMClient.from_user_settings)
         """
-        self._api_key = api_key
-        self._client = None
-    
-    @property
-    def client(self):
-        """Lazy-load the LLM client."""
-        if self._client is None:
-            self._client = get_gemini_client(self._api_key)
-        return self._client
-    
+        self._llm = llm
+
     def analyze(
         self,
         resume: Optional[Dict] = None,
@@ -163,9 +157,8 @@ Return strictly valid JSON matching the `ProfileDiscrepancy` schema.
         print("  🤖 Calling LLM for analysis...")
         import time
         start = time.time()
-        
-        result = self.client.chat.completions.create(
-            model="gemini-2.5-flash",
+
+        result = self._llm.complete(
             response_model=ProfileDiscrepancy,
             messages=[
                 {"role": "system", "content": self._get_system_prompt()},
@@ -173,9 +166,9 @@ Return strictly valid JSON matching the `ProfileDiscrepancy` schema.
             ],
             temperature=0.0,
             max_tokens=32000,
-            max_retries=1,  # Don't retry on failure
+            max_retries=1,
         )
-        
+
         elapsed = time.time() - start
         print(f"  ⏱ LLM call took {elapsed:.1f}s")
         return result
@@ -189,19 +182,21 @@ def analyze_discrepancies(
     resume: Optional[Dict] = None,
     linkedin: Optional[Dict] = None,
     portfolio: Optional[Dict] = None,
-    api_key: Optional[str] = None
+    llm: Optional[LLMClient] = None
 ) -> ProfileDiscrepancy:
     """
     Convenience function to analyze discrepancies.
-    
+
     Args:
         resume: Parsed resume data
         linkedin: Parsed LinkedIn profile data
         portfolio: Parsed portfolio data
-        api_key: Optional DeepSeek API key
-        
+        llm: LLMClient instance (uses user's preferred provider/model)
+
     Returns:
         ProfileDiscrepancy result
     """
-    analyzer = DiscrepancyAnalyzer(api_key)
+    if llm is None:
+        llm = LLMClient.from_user_settings({"llm_provider": "grok"})
+    analyzer = DiscrepancyAnalyzer(llm)
     return analyzer.analyze(resume, linkedin, portfolio)

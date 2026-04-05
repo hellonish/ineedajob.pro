@@ -1,7 +1,7 @@
 """
-Models package - Centralized LLM configurations.
+Models package — LLM client configuration.
 """
 
-from .llm import get_deepseek_client, get_gemini_client, LLMModels
+from .llm import LLMClient, get_deepseek_client, get_gemini_client
 
-__all__ = ['get_deepseek_client', 'get_gemini_client', 'LLMModels']
+__all__ = ["LLMClient", "get_deepseek_client", "get_gemini_client"]

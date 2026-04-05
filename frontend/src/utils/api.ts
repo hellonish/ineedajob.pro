@@ -62,6 +62,8 @@ export interface User {
     email: string;
     name: string;
     profile_picture?: string;
+    llm_provider?: string;
+    llm_model?: string;
     created_at?: string;
 }
 
@@ -152,6 +154,8 @@ export interface JobListItem {
     job_posting: JobPosting;
     status: 'tracked' | 'queued' | 'analyzing' | 'applied' | 'interview' | 'offer' | 'rejected';
     final_score?: number;
+    company_website?: string;
+    joblens_session_id?: string;
     created_at: string;
 }
 
@@ -163,15 +167,25 @@ export interface Job {
     status: 'tracked' | 'queued' | 'analyzing' | 'applied' | 'interview' | 'offer' | 'rejected';
     user_notes?: string;
     resume_history?: ResumeHistoryEntry[];
+    company_website?: string;
+    joblens_session_id?: string;
     created_at: string;
     updated_at?: string;
 }
 
 // Job create request
 export interface JobCreate {
-    job_posting: Record<string, unknown>;
-    resume: Record<string, unknown>;
-    unified_profile?: Record<string, unknown>;
+    jd_text: string;
+    company_website?: string;
+}
+
+// Simple track job request (no AI pipeline)
+export interface JobTrackCreate {
+    job_title: string;
+    company_name: string;
+    job_url?: string;
+    location?: string;
+    status?: string;
 }
 
 // Job update request
@@ -209,6 +223,8 @@ export interface UserProfile {
     linkedin_data?: Record<string, unknown>;
     portfolio_data?: Record<string, unknown>;
     unified_profile?: Record<string, unknown>;
+    extracted_profile?: Record<string, unknown>;
+    additional_context?: string;
     updated_at: string;
 }
 
@@ -222,7 +238,7 @@ export interface ProfileUploadResponse {
 export interface CoverLetter {
     id: string;
     job_id?: string;
-    mode: 'professional' | 'conversational' | 'concise' | 'creative' | 'storytelling';
+    mode: 'storyline' | 'disruptive' | 'regular' | 'auto' | 'custom';
     content: Record<string, unknown>;
     created_at: string;
     updated_at: string;
@@ -230,7 +246,30 @@ export interface CoverLetter {
 
 export interface CoverLetterCreate {
     job_id?: string;
-    mode: 'professional' | 'conversational' | 'concise' | 'creative' | 'storytelling';
+    mode: string;
+    custom_prompt?: string;
+    include_news?: boolean;
+    jd_text?: string;
+    company_name?: string;
+}
+
+export interface JDToneAnalysis {
+    recommended_mode: string;
+    confidence: number;
+    tone_signals: string[];
+    culture_indicators: string[];
+    formality_level: string;
+    industry: string;
+    reasoning: string;
+}
+
+export interface ProviderModelInfo {
+    default_model: string;
+    models: string[];
+}
+
+export interface AvailableProviders {
+    providers: Record<string, ProviderModelInfo>;
 }
 
 export interface Discrepancy {
@@ -286,13 +325,34 @@ export interface QueueStatusResponse {
     jobs: QueueJobStatus[];
 }
 
+// ============================================================================
+// JobLens Types
+// ============================================================================
+
+export interface JobLensSession {
+    id: string;
+    job_id?: string;
+    extracted_profile?: Record<string, unknown>;
+    parsed_jd?: Record<string, unknown>;
+    company_intel?: Record<string, unknown>;
+    match_analysis?: Record<string, unknown>;
+    contact_strategy?: Record<string, unknown>;
+    action_plan?: Record<string, unknown>;
+    raw_jd_text?: string;
+    company_website?: string;
+    current_step: number;
+    created_at: string;
+    updated_at: string;
+}
+
 // ============ API Methods ============
 
 export const api = {
     // Auth
     getMe: (): Promise<User> => fetchWithAuth('/api/auth/me'),
     logout: () => fetchWithAuth('/api/auth/logout', { method: 'POST' }),
-    updateUser: (data: { name?: string; profile_picture?: string }): Promise<User> =>
+    getLLMProviders: (): Promise<AvailableProviders> => fetch('/api/auth/llm/providers').then(r => r.json()),
+    updateUser: (data: { name?: string; profile_picture?: string; llm_provider?: string; llm_model?: string }): Promise<User> =>
         fetchWithAuth('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
     deleteAccount: (): Promise<void> => fetchWithAuth('/api/auth/profile', { method: 'DELETE' }),
 
@@ -304,6 +364,8 @@ export const api = {
     getJob: (id: string, suppressError?: boolean): Promise<Job | null> => fetchWithAuth(`/api/jobs/${id}`, { suppressError }),
     createJob: (data: JobCreate): Promise<Job> =>
         fetchWithAuth('/api/jobs', { method: 'POST', body: JSON.stringify(data) }),
+    trackJob: (data: JobTrackCreate): Promise<Job> =>
+        fetchWithAuth('/api/jobs/track', { method: 'POST', body: JSON.stringify(data) }),
     updateJob: (id: string, data: JobUpdate): Promise<Job> =>
         fetchWithAuth(`/api/jobs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     deleteJob: (id: string) =>
@@ -330,6 +392,8 @@ export const api = {
     getCoverLetter: (id: string): Promise<CoverLetter> => fetchWithAuth(`/api/cover-letters/${id}`),
     createCoverLetter: (data: CoverLetterCreate): Promise<CoverLetter> =>
         fetchWithAuth('/api/cover-letters', { method: 'POST', body: JSON.stringify(data) }),
+    analyzeJDTone: (data: CoverLetterCreate): Promise<JDToneAnalysis> =>
+        fetchWithAuth('/api/cover-letters/analyze-jd', { method: 'POST', body: JSON.stringify(data) }),
     deleteCoverLetter: (id: string): Promise<void> => fetchWithAuth(`/api/cover-letters/${id}`, { method: 'DELETE' }),
     updateCoverLetter: (id: string, data: { full_letter?: string; content?: Record<string, unknown> }): Promise<CoverLetter> =>
         fetchWithAuth(`/api/cover-letters/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -370,6 +434,9 @@ export const api = {
 
     createUnifiedProfile: (): Promise<UserProfile> => fetchWithAuth('/api/profile/unified', { method: 'POST' }),
 
+    updateAdditionalContext: (additional_context: string): Promise<UserProfile> =>
+        fetchWithAuth('/api/profile/additional-context', { method: 'PATCH', body: JSON.stringify({ additional_context }) }),
+
     deleteProfileFile: (type: 'resume' | 'linkedin' | 'portfolio'): Promise<UserProfile> =>
         fetchWithAuth(`/api/profile/${type}`, { method: 'DELETE' }),
 
@@ -397,4 +464,41 @@ export const api = {
     getQueueStatus: (): Promise<QueueStatusResponse> => fetchWithAuth('/api/queue/status'),
 
     cancelJob: (jobId: string): Promise<void> => fetchWithAuth(`/api/queue/jobs/${jobId}`, { method: 'DELETE' }),
+
+    // JobLens
+    createJobLensSession: (data: { job_id?: string }): Promise<JobLensSession> =>
+        fetchWithAuth('/api/joblens/sessions', { method: 'POST', body: JSON.stringify(data) }),
+    getJobLensSessions: (): Promise<JobLensSession[]> =>
+        fetchWithAuth('/api/joblens/sessions'),
+    getJobLensSession: (id: string): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${id}`),
+    deleteJobLensSession: (id: string): Promise<void> =>
+        fetchWithAuth(`/api/joblens/sessions/${id}`, { method: 'DELETE' }),
+
+    // JobLens Steps
+    joblensExtractProfile: (sessionId: string, data: { portfolio_notes?: string }): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/extract-profile`, { method: 'POST', body: JSON.stringify(data) }),
+    joblensParseJD: (sessionId: string, data: { jd_text: string; job_id?: string }): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/parse-jd`, { method: 'POST', body: JSON.stringify(data) }),
+    joblensCompanyIntel: (sessionId: string, data: { company_name: string; company_website?: string; additional_notes?: string }): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/company-intel`, { method: 'POST', body: JSON.stringify(data) }),
+    joblensMatchAnalysis: (sessionId: string): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/match-analysis`, { method: 'POST', body: JSON.stringify({}) }),
+    joblensContacts: (sessionId: string): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/contacts`, { method: 'POST', body: JSON.stringify({}) }),
+    joblensActionPlan: (sessionId: string): Promise<JobLensSession> =>
+        fetchWithAuth(`/api/joblens/sessions/${sessionId}/action-plan`, { method: 'POST', body: JSON.stringify({}) }),
+
+    // Convenience
+    getJobWithSession: async (jobId: string): Promise<{ job: Job | null; session: JobLensSession | null }> => {
+        const job = await fetchWithAuth(`/api/jobs/${jobId}`, { suppressError: true });
+        if (!job) return { job: null, session: null };
+        let session = null;
+        if (job.joblens_session_id) {
+            try {
+                session = await fetchWithAuth(`/api/joblens/sessions/${job.joblens_session_id}`);
+            } catch {}
+        }
+        return { job, session };
+    },
 };

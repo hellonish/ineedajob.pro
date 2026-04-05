@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/utils/store';
-import { api } from '@/utils/api';
+import { api, AvailableProviders } from '@/utils/api';
 import Header from '@/components/Header';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { motion } from 'framer-motion';
@@ -12,14 +12,22 @@ export default function SettingsPage() {
     const router = useRouter();
     const { user, isAuthenticated, _hasHydrated, fetchUser, logout } = useStore();
 
-    // Form State
     const [name, setName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
 
-    // Modal State
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const [providers, setProviders] = useState<AvailableProviders | null>(null);
+    const [selectedProvider, setSelectedProvider] = useState('');
+    const [selectedModel, setSelectedModel] = useState('');
+    const [modelsLoading, setModelsLoading] = useState(true);
+
+    const [focusedInput, setFocusedInput] = useState<string | null>(null);
+    const [hoveredProvider, setHoveredProvider] = useState<string | null>(null);
+    const [hoveredModel, setHoveredModel] = useState<string | null>(null);
+    const [deleteHovered, setDeleteHovered] = useState(false);
 
     useEffect(() => {
         if (_hasHydrated && !isAuthenticated) {
@@ -27,8 +35,31 @@ export default function SettingsPage() {
         }
         if (user) {
             setName(user.name);
+            setSelectedProvider(user.llm_provider || 'grok');
+            setSelectedModel(user.llm_model || '');
         }
     }, [user, isAuthenticated, _hasHydrated, router]);
+
+    useEffect(() => {
+        loadProviders();
+    }, []);
+
+    const loadProviders = async () => {
+        try {
+            const result = await api.getLLMProviders();
+            setProviders(result);
+        } catch {
+            setProviders({
+                providers: {
+                    grok: { default_model: 'grok-3', models: ['grok-3', 'grok-3-mini'] },
+                    gemini: { default_model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
+                    deepseek: { default_model: 'deepseek-chat', models: ['deepseek-chat', 'deepseek-reasoner'] },
+                }
+            });
+        } finally {
+            setModelsLoading(false);
+        }
+    };
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,12 +67,11 @@ export default function SettingsPage() {
         setSaveMessage('');
 
         try {
-            await api.updateUser({ name });
-            await fetchUser(); // Refresh global state
+            await api.updateUser({ name, llm_provider: selectedProvider, llm_model: selectedModel || undefined });
+            await fetchUser();
             setSaveMessage('Profile updated successfully!');
             setTimeout(() => setSaveMessage(''), 3000);
-        } catch (error) {
-            console.error(error);
+        } catch {
             setSaveMessage('Failed to update profile.');
         } finally {
             setIsSaving(false);
@@ -54,97 +84,300 @@ export default function SettingsPage() {
             await api.deleteAccount();
             logout();
             router.push('/');
-        } catch (error) {
-            console.error(error);
+        } catch {
             setIsDeleting(false);
             alert('Failed to delete account. Please try again.');
         }
     };
 
+    const availableModels = providers?.providers?.[selectedProvider]?.models || [];
+    const defaultModel = providers?.providers?.[selectedProvider]?.default_model || '';
+
+    useEffect(() => {
+        if (defaultModel && !selectedModel) {
+            setSelectedModel(defaultModel);
+        }
+    }, [selectedProvider, defaultModel]);
+
+    const hasChanges = name !== user?.name || selectedProvider !== (user?.llm_provider || 'grok') || selectedModel !== (user?.llm_model || '');
+
     if (!_hasHydrated || !isAuthenticated || !user) {
-        return null; // Or loader
+        return null;
     }
 
     return (
-        <main className="min-h-screen bg-[var(--bg-primary)]">
+        <main style={{ minHeight: '100vh', background: 'var(--bg)' }}>
             <Header />
 
-            <div className="max-w-2xl mx-auto px-6 py-12">
+            <div className="max-w-2xl mx-auto px-8 py-8">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-8"
                 >
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Account Settings</h1>
-                        <p className="text-[var(--text-secondary)] mt-2">Manage your personal information and account preferences.</p>
-                    </div>
+                    {/* Page header */}
+                    <h1
+                        className="text-lg font-semibold mb-8"
+                        style={{ color: 'var(--text-1)' }}
+                    >
+                        Settings
+                    </h1>
 
                     {/* Profile Section */}
-                    <section className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl p-6 md:p-8">
-                        <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-6">Profile Information</h2>
+                    <div
+                        className="border-b pb-8 mb-8"
+                        style={{ borderColor: 'var(--border)' }}
+                    >
+                        <p
+                            className="text-xs uppercase tracking-widest mb-4"
+                            style={{ color: 'var(--text-3)' }}
+                        >
+                            Profile
+                        </p>
 
-                        <form onSubmit={handleSaveProfile} className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                        <form onSubmit={handleSaveProfile}>
+                            <div className="mb-4">
+                                <label
+                                    className="text-xs block mb-1.5"
+                                    style={{ color: 'var(--text-2)' }}
+                                >
                                     Display Name
                                 </label>
                                 <input
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                    onFocus={() => setFocusedInput('name')}
+                                    onBlur={() => setFocusedInput(null)}
                                     placeholder="Your Name"
+                                    style={{
+                                        background: 'var(--card)',
+                                        border: `1px solid ${focusedInput === 'name' ? 'var(--border-strong)' : 'var(--border)'}`,
+                                        color: 'var(--text-1)',
+                                        borderRadius: '6px',
+                                        padding: '8px 12px',
+                                        fontSize: '14px',
+                                        width: '100%',
+                                        outline: 'none',
+                                        transition: 'border-color 0.15s',
+                                    }}
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <div className="mb-6">
+                                <label
+                                    className="text-xs block mb-1.5"
+                                    style={{ color: 'var(--text-2)' }}
+                                >
                                     Email Address
                                 </label>
                                 <input
                                     type="email"
                                     value={user.email}
                                     disabled
-                                    className="w-full px-4 py-2.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-[var(--text-muted)] cursor-not-allowed"
+                                    style={{
+                                        background: 'var(--card)',
+                                        border: '1px solid var(--border)',
+                                        color: 'var(--text-3)',
+                                        borderRadius: '6px',
+                                        padding: '8px 12px',
+                                        fontSize: '14px',
+                                        width: '100%',
+                                        outline: 'none',
+                                        cursor: 'not-allowed',
+                                    }}
                                 />
-                                <p className="text-xs text-[var(--text-muted)] mt-2">
-                                    Email address is managed via your Google account and cannot be changed here.
-                                </p>
                             </div>
 
-                            <div className="flex items-center justify-between pt-4">
-                                <span className={`text-sm font-medium transition-colors ${saveMessage.includes('Failed') ? 'text-red-400' : 'text-green-400'
-                                    }`}>
-                                    {saveMessage}
+                            <div className="flex items-center justify-between">
+                                <span
+                                    className="text-sm"
+                                    style={{
+                                        color: saveMessage.includes('Failed') ? '#f87171' : '#4ade80',
+                                        visibility: saveMessage ? 'visible' : 'hidden',
+                                    }}
+                                >
+                                    {saveMessage || ' '}
                                 </span>
                                 <button
                                     type="submit"
-                                    disabled={isSaving || name === user.name}
-                                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
+                                    disabled={isSaving || !hasChanges}
+                                    style={{
+                                        border: hasChanges && !isSaving
+                                            ? '1px solid var(--accent-border)'
+                                            : '1px solid var(--border)',
+                                        color: hasChanges && !isSaving
+                                            ? 'var(--accent)'
+                                            : 'var(--text-3)',
+                                        cursor: hasChanges && !isSaving ? 'pointer' : 'not-allowed',
+                                        background: 'transparent',
+                                        borderRadius: '6px',
+                                        padding: '7px 16px',
+                                        fontSize: '13px',
+                                        transition: 'all 0.15s',
+                                    }}
                                 >
                                     {isSaving ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
                         </form>
-                    </section>
+                    </div>
 
-                    {/* Danger Zone */}
-                    <section className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 md:p-8">
-                        <h2 className="text-xl font-semibold text-red-500 mb-2">Danger Zone</h2>
-                        <p className="text-sm text-[var(--text-secondary)] mb-6">
-                            Once you delete your account, there is no going back. All your data, including jobs, resumes, and analysis history will be permanently removed.
+                    {/* AI Model Section */}
+                    <div
+                        className="border-b pb-8 mb-8"
+                        style={{ borderColor: 'var(--border)' }}
+                    >
+                        <p
+                            className="text-xs uppercase tracking-widest mb-4"
+                            style={{ color: 'var(--text-3)' }}
+                        >
+                            AI Model
                         </p>
 
-                        <div className="flex justify-end">
-                            <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="px-6 py-2.5 bg-white dark:bg-red-500/10 hover:bg-red-50 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm font-semibold rounded-xl transition-all"
-                            >
-                                Delete Account
-                            </button>
-                        </div>
-                    </section>
+                        {modelsLoading ? (
+                            <p className="text-sm" style={{ color: 'var(--text-3)' }}>
+                                Loading providers...
+                            </p>
+                        ) : (
+                            <>
+                                {/* Provider selector */}
+                                <div className="mb-5">
+                                    <label
+                                        className="text-xs block mb-1.5"
+                                        style={{ color: 'var(--text-2)' }}
+                                    >
+                                        Provider
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {providers && Object.entries(providers.providers).map(([key]) => {
+                                            const isSelected = selectedProvider === key;
+                                            const isHovered = hoveredProvider === key && !isSelected;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    onClick={() => setSelectedProvider(key)}
+                                                    onMouseEnter={() => setHoveredProvider(key)}
+                                                    onMouseLeave={() => setHoveredProvider(null)}
+                                                    className="capitalize text-sm py-2 rounded-md"
+                                                    style={{
+                                                        border: isSelected
+                                                            ? '1px solid var(--accent-border)'
+                                                            : isHovered
+                                                                ? '1px solid var(--border-strong)'
+                                                                : '1px solid var(--border)',
+                                                        background: isSelected ? 'var(--accent-dim)' : 'var(--card)',
+                                                        color: isSelected
+                                                            ? 'var(--accent)'
+                                                            : isHovered
+                                                                ? 'var(--text-1)'
+                                                                : 'var(--text-2)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {key}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Model selector */}
+                                <div>
+                                    <label
+                                        className="text-xs block mb-1.5"
+                                        style={{ color: 'var(--text-2)' }}
+                                    >
+                                        Model
+                                    </label>
+                                    <div>
+                                        {availableModels.map((model, idx) => {
+                                            const isSelected = selectedModel === model;
+                                            const isHovered = hoveredModel === model && !isSelected;
+                                            const isLast = idx === availableModels.length - 1;
+                                            return (
+                                                <div
+                                                    key={model}
+                                                    onClick={() => setSelectedModel(model)}
+                                                    onMouseEnter={() => setHoveredModel(model)}
+                                                    onMouseLeave={() => setHoveredModel(null)}
+                                                    className="flex items-center gap-2 py-3 px-0 text-sm"
+                                                    style={{
+                                                        borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                                                        color: isSelected
+                                                            ? 'var(--accent)'
+                                                            : isHovered
+                                                                ? 'var(--text-1)'
+                                                                : 'var(--text-2)',
+                                                        cursor: 'pointer',
+                                                        transition: 'color 0.15s',
+                                                    }}
+                                                >
+                                                    {/* Selection indicator */}
+                                                    <span
+                                                        style={{
+                                                            width: '6px',
+                                                            height: '6px',
+                                                            borderRadius: '50%',
+                                                            background: isSelected ? 'var(--accent)' : 'transparent',
+                                                            flexShrink: 0,
+                                                            transition: 'background 0.15s',
+                                                        }}
+                                                    />
+                                                    <span>{model}</span>
+                                                    {model === defaultModel && (
+                                                        <span
+                                                            className="text-[10px] px-1.5 py-0.5 rounded"
+                                                            style={{
+                                                                border: '1px solid var(--border)',
+                                                                color: 'var(--text-3)',
+                                                            }}
+                                                        >
+                                                            default
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div>
+                        <p
+                            className="text-xs uppercase tracking-widest mb-4"
+                            style={{ color: '#f87171' }}
+                        >
+                            Danger Zone
+                        </p>
+                        <p
+                            className="text-sm mb-4"
+                            style={{ color: 'var(--text-3)' }}
+                        >
+                            Once you delete your account, there is no going back. All your data, including jobs, resumes, and analysis history will be permanently removed.
+                        </p>
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            onMouseEnter={() => setDeleteHovered(true)}
+                            onMouseLeave={() => setDeleteHovered(false)}
+                            className="text-sm px-4 py-2 rounded-md"
+                            style={{
+                                border: deleteHovered
+                                    ? '1px solid #f87171'
+                                    : '1px solid rgba(248,113,113,0.3)',
+                                color: '#f87171',
+                                background: deleteHovered ? 'rgba(248,113,113,0.06)' : 'transparent',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            Delete Account
+                        </button>
+                    </div>
                 </motion.div>
             </div>
 

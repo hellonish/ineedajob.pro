@@ -1,5 +1,5 @@
 """
-Authentication Router - Google OAuth
+Authentication Router - Google OAuth + User Settings
 """
 
 import os
@@ -10,8 +10,9 @@ from starlette.config import Config
 
 from ..database import get_db
 from ..auth import oauth, create_access_token, get_or_create_user, get_current_user
-from ..schemas import TokenResponse, UserResponse, UserUpdate
+from ..schemas import TokenResponse, UserResponse, UserUpdate, AvailableProvidersResponse, ProviderModelInfo
 from ..models import User
+from engine.models import LLMClient
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -89,6 +90,10 @@ async def update_profile(
         current_user.name = update.name
     if update.profile_picture:
         current_user.profile_picture = update.profile_picture
+    if update.llm_provider is not None:
+        current_user.llm_provider = update.llm_provider
+    if update.llm_model is not None:
+        current_user.llm_model = update.llm_model
     
     db.commit()
     db.refresh(current_user)
@@ -104,3 +109,18 @@ async def delete_account(
     db.delete(current_user)
     db.commit()
     return {"message": "Account deleted successfully"}
+
+
+@router.get("/llm/providers", response_model=AvailableProvidersResponse)
+async def get_llm_providers():
+    """Get available LLM providers and models (no auth required)."""
+    providers = LLMClient.available_providers()
+    return AvailableProvidersResponse(
+        providers={
+            name: ProviderModelInfo(
+                default_model=cfg["default_model"],
+                models=cfg["models"],
+            )
+            for name, cfg in providers.items()
+        }
+    )

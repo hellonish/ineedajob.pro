@@ -172,60 +172,24 @@ export default function DashboardPage() {
         }
     };
 
-    // Submit job for analysis
-    // Submit job for analysis
+    // Submit job for analysis via new JobLens pipeline
     const handleSubmit = async () => {
         if (!jobInput.trim() || isSubmitting) return;
 
         setIsSubmitting(true);
         try {
-            const lines = jobInput.trim().split('\n').filter(Boolean);
-            const jobTitle = lines[0]?.slice(0, 50) || 'New Job';
-
-            // Build request object
-            // For now, we assume user has a default profile or handle it on backend?
-            // The QueueJobRequest needs `job_posting` (dict) and `resume` (dict).
-            // Since we only have raw text, we might need to rely on the backend to parse it first?
-            // OR - if the input is just text, we send it as a simple structure.
-            // Wait, the API expects parsed objects. 
-            // In the gap analysis, we moved parsing to the backend tasks.
-            // Let's assume we pass the raw text in a wrapper structure.
-
-            // Actually, we'll fetch the profile from API first? 
-            // Better: use the profile stored in user state or let backend handle it.
-            // For this implementation, let's fetch the profile first if we don't have it, 
-            // OR construct a basic request.
-
-            // Let's grab the profile data first.
-            const profile = await api.getProfile();
-
-            if (!profile.resume_data) {
-                alert("Please upload a resume first via the Profile page.");
-                return;
-            }
-
-            const requestData = {
-                job_posting: {
-                    raw_text: jobInput,
-                    job_title: jobTitle,
-                    ...(jobLink.trim() && { job_link: jobLink.trim() })
-                },
-                resume: profile.resume_data,
-                unified_profile: profile.unified_profile
-            };
-
-            const res = await api.queueJob(requestData);
-
-            // Add to local queue immediately
-            addToQueue(res.job_id, jobTitle);
+            const newJob = await api.createJob({
+                jd_text: jobInput.trim(),
+                company_website: jobLink.trim() || undefined,
+            });
 
             setJobInput('');
             setJobLink('');
-            setIsQueueOpen(true);
+            router.push(`/jobs/${newJob.id}`);
 
         } catch (error) {
             console.error(error);
-            alert("Failed to queue job. Please try again.");
+            alert('Failed to analyze job. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -262,17 +226,17 @@ export default function DashboardPage() {
                         Analyze a Job Posting
                     </h2>
 
-                    {/* Optional Job Link Input */}
+                    {/* Company Website Input */}
                     <div className="!mb-4">
                         <label className="block text-xs text-[var(--text-secondary)] !mb-1.5">
-                            Job Link (optional)
+                            Company Website (optional — used for company research)
                         </label>
                         <div className="relative">
                             <input
                                 type="url"
                                 value={jobLink}
                                 onChange={(e) => setJobLink(e.target.value)}
-                                placeholder="https://careers.example.com/job/12345"
+                                placeholder="https://company.com"
                                 className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg !py-2.5 !pl-10 !pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
                             />
                             <svg
@@ -309,7 +273,7 @@ export default function DashboardPage() {
                         disabled={!jobInput.trim() || isSubmitting}
                         className="!mt-4 w-full !py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all cursor-pointer"
                     >
-                        {isSubmitting ? 'Submitting...' : 'Analyze Match'}
+                        {isSubmitting ? 'Starting analysis...' : 'Analyze Job'}
                     </button>
                 </motion.div>
 

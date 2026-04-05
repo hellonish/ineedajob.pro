@@ -12,7 +12,7 @@ from datetime import datetime
 
 from ..database import get_db
 from ..auth import get_current_user
-from ..schemas import UserProfileResponse, ProfileUploadResponse
+from ..schemas import UserProfileResponse, ProfileUploadResponse, AdditionalContextUpdate
 from ..models import User, UserProfile
 
 from engine.profile.parsers import ResumeParser, LinkedInParser, PortfolioParser
@@ -134,9 +134,9 @@ async def create_unified(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create Unified Profile from uploaded files."""
+    """Create Unified Profile from uploaded files, then auto-extract structured profile."""
     profile = _get_or_create_profile(db, current_user.id)
-    
+
     sources = {}
     if profile.resume_data:
         sources["resume"] = profile.resume_data
@@ -144,20 +144,49 @@ async def create_unified(
         sources["linkedin"] = profile.linkedin_data
     if profile.portfolio_data:
         sources["portfolio"] = profile.portfolio_data
-        
-    if not sources:
-         raise HTTPException(status_code=400, detail="No files uploaded to unify")
 
-    # If only 1 source exists, just use it directly (as per user request)
+    if not sources:
+        raise HTTPException(status_code=400, detail="No files uploaded to unify")
+
     if len(sources) == 1:
         unified = list(sources.values())[0]
     else:
         unified = create_unified_profile(sources)
-    
+
     profile.unified_profile = unified
     db.commit()
+
+    # Auto-extract structured profile for JobLens
+    try:
+        from engine.joblens import extract_profile
+        from engine.models.llm import LLMClient
+        llm = LLMClient.from_user_settings({
+            "llm_provider": current_user.llm_provider or "grok",
+            "llm_model": current_user.llm_model,
+        })
+        extracted = extract_profile(unified, llm, profile.additional_context)
+        profile.extracted_profile = extracted.model_dump()
+        db.commit()
+    except Exception as e:
+        # Non-fatal — unified profile still saved
+        import logging
+        logging.getLogger(__name__).warning(f"Auto-extract profile failed: {e}")
+
     db.refresh(profile)
-    
+    return profile
+
+
+@router.patch("/additional-context", response_model=UserProfileResponse)
+async def update_additional_context(
+    data: AdditionalContextUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Save user-supplied additional context (links, achievements, portfolio notes)."""
+    profile = _get_or_create_profile(db, current_user.id)
+    profile.additional_context = data.additional_context
+    db.commit()
+    db.refresh(profile)
     return profile
 
 @router.delete("/{file_type}", response_model=UserProfileResponse)

@@ -52,7 +52,7 @@ export const useStore = create<AppState>()(
             token: null,
             isAuthenticated: false,
             _hasHydrated: false,
-            theme: 'dark',
+            theme: 'light',
             jobsFilter: 'all',
             queue: [],
 

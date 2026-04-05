@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/utils/store';
 import { api, Discrepancy } from '@/utils/api';
 import Header from '@/components/Header';
-import { usePageUnloadWarning } from '@/hooks/usePageUnloadWarning';
+import { subscribeToDiscrepancy } from '@/hooks/useGlobalWebSocket';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -21,9 +21,28 @@ export default function DiscrepanciesPage() {
     const [selectedReport, setSelectedReport] = useState<Discrepancy | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [reportToDelete, setReportToDelete] = useState<string | null>(null);
+    const [hoveredReport, setHoveredReport] = useState<string | null>(null);
+    const [runBtnHovered, setRunBtnHovered] = useState(false);
 
-    // Warn if user tries to refresh/leave while generating
-    usePageUnloadWarning(generating, "Discrepancy check in progress. Leaving now will cancel the operation.");
+    // Subscribe to WebSocket discrepancy events
+    useEffect(() => {
+        const unsub = subscribeToDiscrepancy((data) => {
+            if (data.type === 'discrepancy_complete') {
+                const id = data.discrepancy_id as string;
+                const result = data.result as Record<string, unknown>;
+                setReports(prev => prev.map(r =>
+                    r.id === id ? { ...r, result } : r
+                ));
+                setSelectedReport(prev =>
+                    prev?.id === id ? { ...prev, result } : prev
+                );
+                setGenerating(false);
+            } else if (data.type === 'discrepancy_failed') {
+                setGenerating(false);
+            }
+        });
+        return unsub;
+    }, []);
 
     useEffect(() => {
         if (!_hasHydrated) return;
@@ -52,25 +71,22 @@ export default function DiscrepanciesPage() {
         if (generating) return;
         setGenerating(true);
         try {
-            // Fetch latest profile to ensure we have unified data
             const profile = await api.getProfile();
-
             if (!profile.unified_profile) {
                 alert('Please generate a Unified Profile first in the Profile section.');
                 router.push('/profile');
+                setGenerating(false);
                 return;
             }
 
-            const result = await api.createDiscrepancy({
-                unified_profile: profile.unified_profile
-            });
-
-            setReports([result, ...reports]);
-            setSelectedReport(result);
+            // Returns immediately with result=null — WS event will deliver the result
+            const pending = await api.createDiscrepancy({ unified_profile: profile.unified_profile });
+            setReports(prev => [pending, ...prev]);
+            setSelectedReport(pending);
+            // generating stays true until WS discrepancy_complete/failed fires
         } catch (error) {
             console.error(error);
-            alert('Failed to run discrepancy check');
-        } finally {
+            alert('Failed to start discrepancy check');
             setGenerating(false);
         }
     };
@@ -101,39 +117,69 @@ export default function DiscrepanciesPage() {
 
     if (!_hasHydrated || !isAuthenticated || loading) {
         return (
-            <div className="min-h-screen">
+            <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
                 <Header />
                 <div className="flex items-center justify-center h-[80vh]">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <div
+                        className="w-6 h-6 rounded-full border-2 animate-spin"
+                        style={{
+                            borderColor: 'var(--border-strong)',
+                            borderTopColor: 'var(--accent)',
+                        }}
+                    />
                 </div>
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[var(--bg-primary)]">
+        <main className="min-h-screen" style={{ background: 'var(--bg)' }}>
             <Header />
 
-            <div className="max-w-6xl mx-auto px-6 py-8">
-                <div className="flex items-center justify-between mb-8">
+            <div className="max-w-screen-xl mx-auto px-8 py-6">
+                {/* Page header */}
+                <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Discrepancy Check</h1>
-                        <p className="text-[var(--text-secondary)]">Detect inconsistencies across your profile data sources.</p>
+                        <h1
+                            className="text-lg font-semibold"
+                            style={{ color: 'var(--text-1)' }}
+                        >
+                            Discrepancy Check
+                        </h1>
+                        <p
+                            className="text-sm mt-0.5"
+                            style={{ color: 'var(--text-3)' }}
+                        >
+                            Detect inconsistencies across your profile sources
+                        </p>
                     </div>
+
                     <button
                         onClick={handleRunCheck}
                         disabled={generating}
-                        className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-2 ${generating ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
+                        onMouseEnter={() => setRunBtnHovered(true)}
+                        onMouseLeave={() => setRunBtnHovered(false)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                            borderColor: runBtnHovered && !generating ? 'var(--accent-border)' : 'var(--border-strong)',
+                            color: runBtnHovered && !generating ? 'var(--text-1)' : 'var(--text-2)',
+                            background: 'transparent',
+                        }}
                     >
                         {generating ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Checking...
+                                <div
+                                    className="w-3.5 h-3.5 rounded-full border-2 animate-spin"
+                                    style={{
+                                        borderColor: 'var(--border-strong)',
+                                        borderTopColor: 'var(--accent)',
+                                    }}
+                                />
+                                Checking…
                             </>
                         ) : (
                             <>
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Run Check
@@ -142,90 +188,139 @@ export default function DiscrepanciesPage() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* List Column */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-4">
-                            <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Past Reports</h3>
-                            {reports.length === 0 ? (
-                                <p className="text-sm text-[var(--text-muted)] text-center py-4">No reports yet.</p>
-                            ) : (
-                                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                                    {reports.map((report) => (
-                                        <button
+                {/* Main grid */}
+                <div className="grid gap-6" style={{ gridTemplateColumns: '260px 1fr' }}>
+
+                    {/* Left panel — reports list */}
+                    <div
+                        className="rounded-lg overflow-hidden"
+                        style={{
+                            border: '1px solid var(--border)',
+                            height: 'fit-content',
+                        }}
+                    >
+                        {/* Panel header */}
+                        <div
+                            className="px-4 py-3 text-xs uppercase tracking-widest"
+                            style={{
+                                color: 'var(--text-3)',
+                                background: 'var(--surface)',
+                                borderBottom: '1px solid var(--border)',
+                                letterSpacing: '0.08em',
+                            }}
+                        >
+                            Reports
+                        </div>
+
+                        {reports.length === 0 ? (
+                            <div
+                                className="px-4 py-8 text-sm text-center"
+                                style={{ color: 'var(--text-3)' }}
+                            >
+                                No reports yet.
+                            </div>
+                        ) : (
+                            <div>
+                                {reports.map((report) => {
+                                    const isSelected = selectedReport?.id === report.id;
+                                    const isHovered = hoveredReport === report.id;
+                                    return (
+                                        <div
                                             key={report.id}
                                             onClick={() => setSelectedReport(report)}
-                                            className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer group flex items-center justify-between ${selectedReport?.id === report.id
-                                                ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
-                                                : 'border-[var(--border-color)] hover:border-[var(--text-muted)] text-[var(--text-primary)]'
-                                                }`}
+                                            onMouseEnter={() => setHoveredReport(report.id)}
+                                            onMouseLeave={() => setHoveredReport(null)}
+                                            className="relative flex items-center justify-between px-4 py-3 cursor-pointer group"
+                                            style={{
+                                                borderBottom: '1px solid var(--border)',
+                                                borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                                                background: isSelected
+                                                    ? 'var(--accent-dim)'
+                                                    : isHovered
+                                                        ? 'var(--hover)'
+                                                        : 'transparent',
+                                            }}
                                         >
                                             <div>
-                                                <div className="text-sm font-medium">Report</div>
-                                                <div className="text-xs text-[var(--text-muted)]">
+                                                <div
+                                                    className="text-sm"
+                                                    style={{ color: 'var(--text-1)' }}
+                                                >
+                                                    Report
+                                                </div>
+                                                <div
+                                                    className="text-xs font-mono mt-0.5"
+                                                    style={{ color: 'var(--text-3)' }}
+                                                >
                                                     {new Date(report.created_at).toLocaleString()}
                                                 </div>
                                             </div>
-                                            <div
+
+                                            <DeleteIcon
+                                                visible={isHovered}
                                                 onClick={(e) => confirmDelete(report.id, e)}
-                                                className="p-1.5 rounded-full hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                                                title="Delete Report"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Detail Column */}
-                    <div className="lg:col-span-3">
+                    {/* Right panel — report detail */}
+                    <div
+                        className="rounded-lg min-h-[400px]"
+                        style={{ border: '1px solid var(--border)' }}
+                    >
                         {selectedReport ? (
                             <motion.div
                                 key={selectedReport.id}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 6 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-8"
+                                className="p-6 h-full"
                             >
-                                <div className="flex items-center justify-between mb-6 pb-6 border-b border-[var(--border-color)]">
-                                    <h2 className="text-xl font-bold text-[var(--text-primary)]">Analysis Results</h2>
-                                    <span className="text-sm text-[var(--text-muted)]">
-                                        {new Date(selectedReport.created_at).toLocaleString()}
-                                    </span>
+                                <div
+                                    className="text-xs font-mono mb-5 pb-4"
+                                    style={{
+                                        color: 'var(--text-3)',
+                                        borderBottom: '1px solid var(--border)',
+                                    }}
+                                >
+                                    {new Date(selectedReport.created_at).toLocaleString()}
                                 </div>
 
-
-
-                                <div className="prose max-w-none text-[var(--text-primary)]">
+                                <div className="prose max-w-none" style={{ color: 'var(--text-1)' }}>
                                     {selectedReport.result ? (
                                         typeof selectedReport.result === 'string' ? (
-                                            // Fallback for legacy text-only reports
                                             <ReactMarkdown>{selectedReport.result}</ReactMarkdown>
                                         ) : (
-                                            // New Structured View
                                             <DiscrepancyReportView data={selectedReport.result} />
                                         )
                                     ) : (
-                                        <p>No discrepancies found or analysis pending.</p>
+                                        <div className="flex flex-col items-center justify-center py-16 gap-3">
+                                            <div
+                                                className="w-5 h-5 rounded-full border-2 animate-spin"
+                                                style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }}
+                                            />
+                                            <p className="text-sm" style={{ color: 'var(--text-3)' }}>
+                                                Analysis running — you can navigate away freely.
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             </motion.div>
                         ) : (
-                            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center text-[var(--text-muted)] h-full min-h-[400px]">
-                                <svg className="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <p className="text-lg font-medium">Select a report to view details</p>
-                                <p className="text-sm">or click "Run Check" to start a new analysis</p>
+                            <div
+                                className="flex items-center justify-center h-full min-h-[400px] text-sm"
+                                style={{ color: 'var(--text-3)' }}
+                            >
+                                Select a report or run a new check.
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 title="Delete Report"
@@ -237,5 +332,34 @@ export default function DiscrepanciesPage() {
                 isDestructive={true}
             />
         </main>
+    );
+}
+
+function DeleteIcon({
+    visible,
+    onClick,
+}: {
+    visible: boolean;
+    onClick: (e: React.MouseEvent) => void;
+}) {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+        <div
+            onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            className="p-1 rounded transition-opacity"
+            style={{
+                opacity: visible ? 1 : 0,
+                color: hovered ? '#f87171' : 'var(--text-3)',
+                pointerEvents: visible ? 'auto' : 'none',
+            }}
+            title="Delete Report"
+        >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </div>
     );
 }

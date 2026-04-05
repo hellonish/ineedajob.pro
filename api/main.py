@@ -10,12 +10,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from .routers import auth, jobs, cover_letters, discrepancies, news, queue, ws, profile
-from .database import engine, Base
+from .routers import auth, jobs, cover_letters, discrepancies, news, queue, ws, profile, joblens
+from .database import engine, Base, ensure_sqlite_schema
 from . import models  # Import models to register them
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
+ensure_sqlite_schema(engine)
 
 app = FastAPI(
     title="Wand API",
@@ -47,6 +48,7 @@ app.include_router(news.router)
 app.include_router(queue.router)
 app.include_router(ws.router)
 app.include_router(profile.router)
+app.include_router(joblens.router)
 
 
 # Health check
