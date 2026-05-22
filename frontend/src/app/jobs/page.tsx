@@ -20,14 +20,14 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_META: Record<string, { label: string; dotColor: string; textColor: string }> = {
-    tracked:   { label: 'Tracked',   dotColor: '#52525b', textColor: '#71717a' },
-    queued:    { label: 'Queued',    dotColor: '#52525b', textColor: '#71717a' },
-    analyzing: { label: 'Analyzing', dotColor: '#818cf8', textColor: '#818cf8' },
-    applied:   { label: 'Applied',   dotColor: '#0ea5e9', textColor: '#0ea5e9' },
-    interview: { label: 'Interview', dotColor: '#f59e0b', textColor: '#f59e0b' },
-    offer:     { label: 'Offer',     dotColor: '#22c55e', textColor: '#22c55e' },
-    rejected:  { label: 'Rejected',  dotColor: '#52525b', textColor: '#52525b' },
-    archived:  { label: 'Archived',  dotColor: '#a1a1aa', textColor: '#a1a1aa' },
+    tracked:   { label: 'Tracked',   dotColor: 'var(--text-3)', textColor: 'var(--text-2)' },
+    queued:    { label: 'Queued',    dotColor: 'var(--text-3)', textColor: 'var(--text-2)' },
+    analyzing: { label: 'Analyzing', dotColor: 'var(--accent)', textColor: 'var(--accent)' },
+    applied:   { label: 'Applied',   dotColor: 'var(--accent)', textColor: 'var(--accent)' },
+    interview: { label: 'Interview', dotColor: 'var(--warning)', textColor: 'var(--warning)' },
+    offer:     { label: 'Offer',     dotColor: 'var(--success)', textColor: 'var(--success)' },
+    rejected:  { label: 'Rejected',  dotColor: 'var(--text-3)', textColor: 'var(--text-3)' },
+    archived:  { label: 'Archived',  dotColor: 'var(--text-3)', textColor: 'var(--text-3)' },
 };
 
 function formatDate(iso: string) {
@@ -40,8 +40,8 @@ function ScoreCell({ score }: { score: number | undefined }) {
         return <span className="text-sm font-mono" style={{ color: 'var(--text-3)' }}>—</span>;
     }
     const color =
-        score >= 80 ? '#22c55e' :
-        score >= 60 ? '#f59e0b' :
+        score >= 80 ? 'var(--success)' :
+        score >= 60 ? 'var(--warning)' :
         'var(--text-3)';
     return (
         <span className="text-sm font-mono tabular-nums" style={{ color }}>
@@ -59,7 +59,7 @@ function CompanyInitials({ name }: { name: string }) {
         .toUpperCase();
     return (
         <div
-            className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-[10px] font-semibold"
+            className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs font-semibold"
             style={{
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
@@ -192,7 +192,7 @@ export default function JobsPage() {
                                     {opt.label}
                                     {count > 0 && (
                                         <span
-                                            className="text-[10px] tabular-nums px-1 py-0.5 rounded"
+                                            className="text-[11px] tabular-nums px-1 py-0.5 rounded"
                                             style={{
                                                 color: active ? 'var(--accent)' : 'var(--text-3)',
                                                 background: 'var(--surface)',
@@ -220,7 +220,7 @@ export default function JobsPage() {
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             placeholder="Search..."
-                            className="w-52 pl-8 pr-3 py-1.5 text-xs rounded-md transition-colors focus:outline-none"
+                            className="w-52 pl-8 pr-3 py-1.5 text-sm rounded-md transition-colors focus:outline-none"
                             style={{
                                 background: 'var(--card)',
                                 border: '1px solid var(--border)',
@@ -251,7 +251,7 @@ export default function JobsPage() {
                         {!searchQuery && jobsFilter === 'all' && (
                             <button
                                 onClick={() => router.push('/dashboard')}
-                                className="text-xs transition-colors cursor-pointer"
+                                className="text-sm transition-colors cursor-pointer"
                                 style={{ color: 'var(--text-3)' }}
                                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; }}
                                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-3)'; }}
@@ -280,7 +280,7 @@ export default function JobsPage() {
                             {['#', 'Company', 'Role', 'Status', 'Match', 'Location', 'Added', ''].map((h, i) => (
                                 <div
                                     key={i}
-                                    className="px-3 py-2.5 text-[10px] uppercase tracking-widest"
+                                    className="px-3 py-2.5 text-xs uppercase tracking-widest"
                                     style={{ color: 'var(--text-3)' }}
                                 >
                                     {h}
@@ -379,8 +379,8 @@ export default function JobsPage() {
                                                 className="p-1.5 rounded transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                                                 style={{ color: 'var(--text-3)' }}
                                                 onMouseEnter={e => {
-                                                    (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
-                                                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)';
+                                                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--danger)';
+                                                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--danger-dim)';
                                                 }}
                                                 onMouseLeave={e => {
                                                     (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-3)';

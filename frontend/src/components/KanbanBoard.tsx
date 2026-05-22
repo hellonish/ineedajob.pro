@@ -15,11 +15,11 @@ interface KanbanBoardProps {
 
 /** Column definitions — left to right */
 const COLUMNS = [
-  { status: 'tracked', label: 'Tracked', dotColor: '#52525b' },
-  { status: 'applied', label: 'Applied', dotColor: '#0ea5e9' },
-  { status: 'interview', label: 'Interview', dotColor: '#f59e0b' },
-  { status: 'offer', label: 'Offer', dotColor: '#22c55e' },
-  { status: 'rejected', label: 'Rejected', dotColor: '#52525b' },
+  { status: 'tracked', label: 'Tracked', dotColor: 'var(--text-3)' },
+  { status: 'applied', label: 'Applied', dotColor: 'var(--accent)' },
+  { status: 'interview', label: 'Interview', dotColor: 'var(--warning)' },
+  { status: 'offer', label: 'Offer', dotColor: 'var(--success)' },
+  { status: 'rejected', label: 'Rejected', dotColor: 'var(--text-3)' },
 ] as const;
 
 type ColumnStatus = (typeof COLUMNS)[number]['status'];
@@ -124,7 +124,7 @@ export default function KanbanBoard({ jobs, onStatusChange, onJobClick, onDelete
               </span>
               {/* Count badge */}
               <span
-                className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full ml-auto"
+                className="text-xs tabular-nums px-1.5 py-0.5 rounded-full ml-auto"
                 style={{
                   background: 'var(--card)',
                   color: 'var(--text-3)',

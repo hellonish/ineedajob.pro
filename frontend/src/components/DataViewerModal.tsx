@@ -31,7 +31,7 @@ export default function DataViewerModal({ isOpen, onClose, title, data }: DataVi
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onClose}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                    className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-sm transition-opacity"
                 />
 
                 {/* Modal */}

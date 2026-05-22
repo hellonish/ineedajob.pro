@@ -3,14 +3,7 @@
 # Start all services for Wand application
 echo "Starting Wand services..."
 
-# 1. Start Redis (background service)
-echo "Starting Redis..."
-brew services start redis
-
-# Wait a moment for Redis to start
-sleep 2
-
-# 2. Start Backend API in background
+# 1. Start Backend API in background
 echo "Starting Backend API on port 8000..."
 cd /Users/nishant/Desktop/wand
 uvicorn api.main:app --reload &
@@ -20,33 +13,21 @@ echo "Backend PID: $BACKEND_PID"
 # Wait a moment for backend to start
 sleep 3
 
-# 3. Start Frontend in background
+# 2. Start Frontend in background
 echo "Starting Frontend on port 3000..."
 cd /Users/nishant/Desktop/wand/frontend
 npm run dev &
 FRONTEND_PID=$!
 echo "Frontend PID: $FRONTEND_PID"
 
-# Wait a moment for frontend to start
-sleep 3
-
-# 4. Start Celery Worker in background
-echo "Starting Celery Worker..."
-cd /Users/nishant/Desktop/wand
-celery -A api.celery_app worker --loglevel=info &
-CELERY_PID=$!
-echo "Celery Worker PID: $CELERY_PID"
-
 # Save PIDs to a file for stop script
 echo "$BACKEND_PID" > /Users/nishant/Desktop/wand/.pids
 echo "$FRONTEND_PID" >> /Users/nishant/Desktop/wand/.pids
-echo "$CELERY_PID" >> /Users/nishant/Desktop/wand/.pids
 
 echo ""
-echo "✅ All services started!"
+echo "All services started!"
 echo "Backend API: http://localhost:8000"
 echo "Frontend: http://localhost:3000"
-echo "Redis: localhost:6379"
 echo ""
 echo "To stop all services, run: ./stop_services.sh"
 echo "Or use Ctrl+C to stop this script and all services"

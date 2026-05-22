@@ -35,14 +35,14 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
     return (
         <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl overflow-hidden">
             {/* Header Section */}
-            <div className="p-8 border-b border-[var(--border-color)] bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
+            <div className="p-8 border-b border-[var(--border-color)] bg-[var(--accent-dim)]">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h2 className="text-3xl font-bold text-[var(--text-primary)]">
                             {basics.name || "Unified Profile"}
                         </h2>
                         {basics.title && (
-                            <p className="text-lg text-indigo-400 font-medium mt-1">{basics.title}</p>
+                            <p className="text-lg text-[var(--accent)] font-medium mt-1">{basics.title}</p>
                         )}
                         {basics.summary && (
                             <p className="text-[var(--text-secondary)] mt-4 max-w-2xl text-sm leading-relaxed">
@@ -71,7 +71,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                         </div>
                     )}
                     {contact.linkedin_url && (
-                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0077b5]/10 border border-[#0077b5]/20 text-xs text-[#0077b5] hover:bg-[#0077b5]/20 transition-colors">
+                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-dim)] border border-[var(--accent-border)] text-xs text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">
                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                             </svg>
@@ -94,7 +94,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`px-4 py-3 text-sm font-medium capitalize transition-colors relative whitespace-nowrap ${activeTab === tab.id
-                            ? 'text-indigo-400'
+                            ? 'text-[var(--accent)]'
                             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                             }`}
                     >
@@ -102,7 +102,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTabProfile"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]"
                             />
                         )}
                     </button>
@@ -127,7 +127,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                                     <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider">Top Skills</h3>
                                     <div className="flex flex-wrap gap-2">
                                         {skills.slice(0, 10).map((skill: string, i: number) => (
-                                            <span key={i} className="px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                            <span key={i} className="px-2.5 py-1 text-xs font-medium rounded-md bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent-border)]">
                                                 {skill}
                                             </span>
                                         ))}
@@ -165,7 +165,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
                                                         <div className="font-bold text-[var(--text-primary)]">{job.job_title}</div>
-                                                        <div className="text-sm text-indigo-400">{job.company_name}</div>
+                                                        <div className="text-sm text-[var(--accent)]">{job.company_name}</div>
                                                     </div>
                                                     <div className="text-xs text-[var(--text-muted)] whitespace-nowrap bg-[var(--bg-primary)] px-2 py-1 rounded">
                                                         {formatDate(job.start_date)} - {formatDate(job.end_date)}
@@ -201,13 +201,13 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                                 work.map((job: any, i: number) => (
                                     <div key={i} className="relative pl-8">
                                         {/* Timeline Dot */}
-                                        <div className="absolute left-1.5 top-2 w-5 h-5 rounded-full border-4 border-[var(--card-bg)] bg-indigo-500 -translate-x-1/2" />
+                                        <div className="absolute left-1.5 top-2 w-5 h-5 rounded-full border-4 border-[var(--card-bg)] bg-[var(--accent)] -translate-x-1/2" />
 
-                                        <div className="bg-[var(--bg-secondary)]/50 rounded-xl p-6 border border-[var(--border-color)] hover:border-indigo-500/30 transition-colors">
+                                        <div className="bg-[var(--bg-secondary)]/50 rounded-xl p-6 border border-[var(--border-color)] hover:border-[var(--accent-border)] transition-colors">
                                             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-4">
                                                 <div>
                                                     <h3 className="text-lg font-bold text-[var(--text-primary)]">{job.job_title}</h3>
-                                                    <div className="text-indigo-400 font-medium">{job.company_name}</div>
+                                                    <div className="text-[var(--accent)] font-medium">{job.company_name}</div>
                                                     {job.location && (
                                                         <div className="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
                                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -233,7 +233,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                                                 <ul className="space-y-1">
                                                     {job.achievements.map((item: string, j: number) => (
                                                         <li key={j} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
-                                                            <span className="text-indigo-400 mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                                                            <span className="text-[var(--accent)] mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)] shrink-0" />
                                                             {item}
                                                         </li>
                                                     ))}
@@ -262,8 +262,8 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                         >
                             {education.length > 0 ? (
                                 education.map((edu: any, i: number) => (
-                                    <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-6 border border-[var(--border-color)] flex gap-4 items-start group hover:border-indigo-500/30 transition-colors">
-                                        <div className="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 group-hover:scale-110 transition-transform">
+                                    <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-6 border border-[var(--border-color)] flex gap-4 items-start group hover:border-[var(--accent-border)] transition-colors">
+                                        <div className="w-12 h-12 rounded-lg bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)] shrink-0 group-hover:scale-110 transition-transform">
                                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
@@ -272,14 +272,14 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-[var(--text-primary)]">{edu.institution}</h3>
-                                            <div className="text-indigo-400 font-medium mb-1">{edu.degree}</div>
+                                            <div className="text-[var(--accent)] font-medium mb-1">{edu.degree}</div>
                                             {(edu.start_date || edu.end_date) && (
                                                 <div className="text-xs text-[var(--text-muted)]">
                                                     {edu.start_date} - {edu.end_date}
                                                 </div>
                                             )}
                                             {edu.gpa && (
-                                                <div className="mt-2 text-xs font-mono bg-green-500/10 text-green-400 px-2 py-1 rounded inline-block">
+                                                <div className="mt-2 text-xs font-mono bg-[var(--success-dim)] text-[var(--success)] px-2 py-1 rounded inline-block">
                                                     GPA: {edu.gpa}
                                                 </div>
                                             )}
@@ -306,7 +306,7 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                             <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-6">All Skills</h3>
                             <div className="flex flex-wrap gap-3">
                                 {skills.map((skill: string, i: number) => (
-                                    <div key={i} className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] hover:border-indigo-500/50 hover:text-indigo-400 transition-colors">
+                                    <div key={i} className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] transition-colors">
                                         {skill}
                                     </div>
                                 ))}
@@ -326,9 +326,9 @@ export default function UnifiedProfileView({ profile }: UnifiedProfileViewProps)
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="bg-gray-900 rounded-xl p-4 overflow-auto max-h-[600px]"
+                            className="bg-[var(--surface)] rounded-xl p-4 overflow-auto max-h-[600px]"
                         >
-                            <pre className="text-xs text-gray-300 font-mono">
+                            <pre className="text-xs text-[var(--text-2)] font-mono">
                                 {JSON.stringify(profile, null, 2)}
                             </pre>
                         </motion.div>

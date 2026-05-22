@@ -24,7 +24,7 @@ The user interface built with **Next.js 14**, **TypeScript**, and **Tailwind CSS
 The backend REST API built with **FastAPI**.
 - **Tech Stack**: FastAPI, SQLAlchemy (SQLite), Pydantic.
 - **Key Functionality**: Data persistence, request orchestration, file handling, and communication with the Engine.
-- **Workers**: Uses Celery (with Redis) for background processing of long-running analysis tasks.
+- **Async work**: Uses FastAPI `BackgroundTasks` and WebSocket progress events for long-running JobLens analysis.
 
 ### 3. Engine (`/engine`)
 The intelligence core of the application.
@@ -43,7 +43,6 @@ The intelligence core of the application.
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- Redis (for background tasks)
 - Google Gemini API Key
 
 ### Backend Setup
@@ -60,7 +59,6 @@ The intelligence core of the application.
 4. Set environment variables in `.env`:
    ```env
    GEMINI_API_KEY=your_key_here
-   REDIS_URL=redis://localhost:6379/0
    ```
 5. Start the server:
    ```bash

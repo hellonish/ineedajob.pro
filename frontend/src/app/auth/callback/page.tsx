@@ -30,12 +30,12 @@ function CallbackHandler() {
 
     if (error) {
         return (
-            <div className="text-red-400">
+            <div className="text-[var(--danger)]">
                 <p className="text-xl !mb-4">Authentication Failed</p>
-                <p className="text-sm text-slate-400">{error}</p>
+                <p className="text-sm text-[var(--text-3)]">{error}</p>
                 <button
                     onClick={() => router.push('/')}
-                    className="!mt-6 !px-4 !py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="!mt-6 !px-4 !py-2 bg-[var(--accent)] text-[var(--on-accent)] rounded-lg hover:opacity-90 transition-colors"
                 >
                     Try Again
                 </button>
@@ -44,8 +44,8 @@ function CallbackHandler() {
     }
 
     return (
-        <div className="text-slate-300">
-            <div className="!mb-4 w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="text-[var(--text-2)]">
+            <div className="!mb-4 w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto" />
             <p>Signing you in...</p>
         </div>
     );
@@ -53,11 +53,11 @@ function CallbackHandler() {
 
 export default function AuthCallbackPage() {
     return (
-        <main className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+        <main className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
             <div className="text-center">
                 <Suspense fallback={
-                    <div className="text-slate-300">
-                        <div className="!mb-4 w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <div className="text-[var(--text-2)]">
+                        <div className="!mb-4 w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto" />
                         <p>Loading...</p>
                     </div>
                 }>

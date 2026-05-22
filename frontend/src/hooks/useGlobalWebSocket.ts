@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStore } from '@/utils/store';
 
 const WS_URL = 'ws://localhost:8000/ws';
@@ -43,7 +43,7 @@ function emitJobLens(sessionId: string, data: Record<string, unknown>) {
 }
 
 export function useGlobalWebSocket() {
-    const { token, updateQueueItem, removeFromQueue } = useStore();
+    const { token } = useStore();
     const wsRef = useRef<WebSocket | null>(null);
 
     useEffect(() => {
@@ -58,25 +58,6 @@ export function useGlobalWebSocket() {
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-
-                // Legacy job_update events
-                if (data.type === 'job_update') {
-                    const jobId = data.job_id;
-                    let frontendStatus: 'pending' | 'analyzing' | 'complete' | 'error';
-                    if (data.status === 'processing') frontendStatus = 'analyzing';
-                    else if (data.status === 'completed') frontendStatus = 'complete';
-                    else if (data.status === 'failed') frontendStatus = 'error';
-                    else frontendStatus = 'pending';
-
-                    updateQueueItem(jobId, {
-                        status: frontendStatus,
-                        error: data.status === 'failed' ? (data.data?.message || 'Analysis failed') : undefined,
-                    });
-
-                    if (data.status === 'completed' || data.status === 'failed') {
-                        setTimeout(() => removeFromQueue(jobId), 3000);
-                    }
-                }
 
                 // Discrepancy events
                 if (data.type === 'discrepancy_complete' || data.type === 'discrepancy_failed') {
@@ -115,7 +96,7 @@ export function useGlobalWebSocket() {
                 wsRef.current = null;
             }
         };
-    }, [token, updateQueueItem, removeFromQueue]);
+    }, [token]);
 
     return wsRef;
 }

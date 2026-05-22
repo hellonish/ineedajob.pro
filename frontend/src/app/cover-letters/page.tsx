@@ -17,19 +17,19 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 const MODE_COLORS: Record<string, string> = {
-    storyline: 'bg-blue-500/10 text-blue-400',
-    disruptive: 'bg-red-500/10 text-red-400',
-    regular: 'bg-green-500/10 text-green-400',
-    auto: 'bg-amber-500/10 text-amber-400',
-    custom: 'bg-purple-500/10 text-purple-400',
+    storyline: 'bg-[var(--accent-dim)] text-[var(--accent)]',
+    disruptive: 'bg-[var(--danger-dim)] text-[var(--danger)]',
+    regular: 'bg-[var(--success-dim)] text-[var(--success)]',
+    auto: 'bg-[var(--warning-dim)] text-[var(--warning)]',
+    custom: 'bg-[var(--accent-dim)] text-[var(--accent)]',
 };
 
 const MODE_STYLES: Record<string, { color: string; border: string }> = {
-    storyline: { color: '#60a5fa', border: 'rgba(96,165,250,0.2)' },
-    disruptive: { color: '#f87171', border: 'rgba(248,113,113,0.2)' },
-    regular: { color: '#4ade80', border: 'rgba(74,222,128,0.2)' },
-    auto: { color: '#fbbf24', border: 'rgba(251,191,36,0.2)' },
-    custom: { color: '#c084fc', border: 'rgba(192,132,252,0.2)' },
+    storyline: { color: 'var(--accent)', border: 'var(--accent-border)' },
+    disruptive: { color: 'var(--danger)', border: 'var(--danger-border)' },
+    regular: { color: 'var(--success)', border: 'var(--success-border)' },
+    auto: { color: 'var(--warning)', border: 'var(--warning-border)' },
+    custom: { color: 'var(--accent)', border: 'var(--accent-border)' },
 };
 
 function formatDate(dateStr: string) {
@@ -47,10 +47,9 @@ export default function CoverLettersPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Modal state
-    const [modalTab, setModalTab] = useState<'select' | 'paste'>('select');
+    const [modalTab, setModalTab] = useState<'select' | 'paste'>('paste');
     const [searchQuery, setSearchQuery] = useState('');
     const [quickJdText, setQuickJdText] = useState('');
-    const [quickCompanyName, setQuickCompanyName] = useState('');
 
     useEffect(() => {
         if (!_hasHydrated) return;
@@ -62,11 +61,11 @@ export default function CoverLettersPage() {
         try {
             const [fetchedLetters, fetchedJobs] = await Promise.all([
                 api.getCoverLetters().catch(() => []),
-                api.getJobs().catch(() => [])
+                api.getJobs('tracked').catch(() => [])
             ]);
             setLetters(fetchedLetters);
             setJobs(fetchedJobs);
-        } catch {} finally { setLoading(false); }
+        } catch { } finally { setLoading(false); }
     };
 
     const filteredJobs = jobs.filter(job => {
@@ -91,17 +90,16 @@ export default function CoverLettersPage() {
     const handleQuickStart = () => {
         if (!quickJdText.trim()) return;
         sessionStorage.setItem('quick_jd_text', quickJdText.trim());
-        sessionStorage.setItem('quick_company_name', quickCompanyName.trim());
+        sessionStorage.removeItem('quick_company_name');
         router.push('/cover-letters/quick');
         closeModal();
     };
 
     const closeModal = () => {
         setShowCreateModal(false);
-        setModalTab('select');
+        setModalTab('paste');
         setSearchQuery('');
         setQuickJdText('');
-        setQuickCompanyName('');
     };
 
     if (!_hasHydrated || !isAuthenticated || loading) {
@@ -188,7 +186,7 @@ export default function CoverLettersPage() {
                             {['Mode', 'Job Title', 'Company', 'Date', ''].map((col) => (
                                 <span
                                     key={col}
-                                    className="text-[10px] uppercase tracking-widest"
+                                    className="text-xs uppercase tracking-widest"
                                     style={{ color: 'var(--text-3)' }}
                                 >
                                     {col}
@@ -207,7 +205,7 @@ export default function CoverLettersPage() {
                                 || 'Unknown Company';
                             const modeKey = letter.mode || 'regular';
                             const modeLabel = letter.content?.mode_label || MODE_LABELS[modeKey] || modeKey;
-                            const modeStyle = MODE_STYLES[modeKey] || { color: '#9ca3af', border: 'rgba(156,163,175,0.2)' };
+                            const modeStyle = MODE_STYLES[modeKey] || { color: 'var(--text-3)', border: 'var(--border)' };
 
                             const handleClick = () => {
                                 if (letter.job_id) {
@@ -292,13 +290,13 @@ export default function CoverLettersPage() {
                             exit={{ opacity: 0 }}
                             onClick={closeModal}
                             className="absolute inset-0"
-                            style={{ background: 'rgba(0,0,0,0.6)' }}
+                            style={{ background: 'var(--overlay)' }}
                         />
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="relative max-w-sm w-full rounded-xl overflow-hidden flex flex-col max-h-[80vh]"
+                            className="relative w-full max-w-2xl rounded-xl overflow-hidden flex flex-col max-h-[88vh]"
                             style={{
                                 background: 'var(--card)',
                                 border: '1px solid var(--border)',
@@ -331,7 +329,7 @@ export default function CoverLettersPage() {
                                             border: 'none',
                                         }}
                                     >
-                                        Paste JD
+                                        Insert JD
                                     </button>
                                 </div>
                                 <button
@@ -364,13 +362,13 @@ export default function CoverLettersPage() {
                                     </div>
 
                                     {/* Job list */}
-                                    <div className="flex-1 overflow-y-auto mt-2">
+                                    <div className="flex-1 overflow-y-auto mt-2 min-h-[360px]">
                                         {filteredJobs.length === 0 ? (
                                             <p
                                                 className="text-center text-sm py-8"
                                                 style={{ color: 'var(--text-3)' }}
                                             >
-                                                {searchQuery ? 'No matching jobs.' : 'No jobs found.'}
+                                                {searchQuery ? 'No matching jobs.' : 'No tracked jobs found.'}
                                             </p>
                                         ) : (
                                             filteredJobs.map((job, idx) => (
@@ -394,10 +392,10 @@ export default function CoverLettersPage() {
                                                     }}
                                                 >
                                                     <div className="text-sm" style={{ color: 'var(--text-1)' }}>
-                                                        {job.job_posting.job_title}
+                                                        {job.job_posting.company_name}
                                                     </div>
                                                     <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>
-                                                        {job.job_posting.company_name}
+                                                        {job.job_posting.job_title}
                                                     </div>
                                                 </button>
                                             ))
@@ -412,23 +410,11 @@ export default function CoverLettersPage() {
                                     <p className="text-xs" style={{ color: 'var(--text-3)' }}>
                                         Paste a job description to generate a cover letter without tracking the job.
                                     </p>
-                                    <input
-                                        type="text"
-                                        placeholder="Company name (optional)"
-                                        value={quickCompanyName}
-                                        onChange={e => setQuickCompanyName(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-                                        style={{
-                                            background: 'var(--surface)',
-                                            border: '1px solid var(--border)',
-                                            color: 'var(--text-1)',
-                                        }}
-                                    />
                                     <textarea
                                         placeholder="Paste the job description here..."
                                         value={quickJdText}
                                         onChange={e => setQuickJdText(e.target.value)}
-                                        rows={8}
+                                        rows={12}
                                         className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none"
                                         style={{
                                             background: 'var(--surface)',

@@ -31,7 +31,7 @@ The key design choice: **structured output via `instructor`**. Every LLM call re
 
 `LLMClient.from_user_settings()` is the dependency injection hook: the API layer creates the client from the authenticated user's stored provider/model preferences and passes it down into every engine module. No module reaches out for keys or clients on its own.
 
-The parallel module in `/llm/` — `GrokProvider` inheriting from `BaseLLMProvider` — shows this was evolving. The engine settled on the unified `LLMClient` pattern; the `/llm/` module precedes it. You can tell the architecture was being actively consolidated during development.
+The parallel module in `/engine/llm/` — `GrokProvider` inheriting from `BaseLLMProvider` — shows this was evolving. The engine settled on the unified `LLMClient` pattern; the `/engine/llm/` module precedes it. You can tell the architecture was being actively consolidated during development.
 
 ---
 
@@ -64,13 +64,10 @@ Database writes use short-lived `SessionLocal()` sessions opened and closed per 
 
 ## 3. The WebSocket event bus (`api/websocket.py` + `frontend/src/hooks/useGlobalWebSocket.ts`)
 
-Background workers (Celery or async background tasks) can't directly write to a WebSocket — they're in a different thread or process. The solution here uses Redis as a pub/sub channel for the Celery path.
-
-Celery tasks call `notify_job_status()`, which publishes a JSON payload to the `job_updates` Redis channel. The FastAPI WebSocket handler subscribes and rebroadcasts to connected clients.
+The active JobLens pipeline runs through FastAPI `BackgroundTasks`, so it can publish progress through the in-process `ConnectionManager`.
 
 The frontend hook `useGlobalWebSocket` keeps a single persistent WebSocket connection per authenticated session. It routes different event types to different consumers:
 
-- `job_update` events → update the Zustand job queue
 - `discrepancy_complete` → module-level event emitter pattern (`subscribeToDiscrepancy`)
 - `joblens_step_*` events → per-session listeners (`subscribeToJobLens(sessionId, handler)`)
 
@@ -108,7 +105,7 @@ improved = score_change > 0
 
 Each evaluation snapshot is stored as a `ResumeHistory` entry (versioned, with score) so the user can see their improvement over time. The re-evaluation uses the same weight formula as initial analysis — so the delta is comparable, not a different scoring system.
 
-The Celery path (`reevaluate_job_task`) does this with progress events sent over WebSocket: the UI shows a live "Re-evaluating..." state, then the score counter animates to the new value.
+The current re-evaluation endpoint runs synchronously, updates the job's `analysis_result`, and appends the new `ResumeHistory` row before returning the recalculated score.
 
 ---
 
@@ -172,15 +169,9 @@ The `trafilatura` library is used for content extraction — it strips nav, head
 
 ---
 
-## 10. The Celery / async duality
+## 10. BackgroundTasks and async orchestration
 
-The system has two task execution paths that coexist:
-
-1. **Celery** (`api/tasks.py`) — the original async worker path, used for the traditional analysis pipeline (qualification check → formatting check → keyword match). Uses Redis as both broker and result backend. Workers are capped at 3 concurrent, with a 5-minute task timeout.
-
-2. **FastAPI BackgroundTasks + asyncio** — the newer JobLens pipeline uses `background_tasks.add_task()` (FastAPI native, no separate process) and `asyncio.gather()` for step parallelism within a single async function. This runs in the API process, not a separate Celery worker.
-
-The two paths use the same Redis pub/sub channel for WebSocket events. Celery tasks call `notify_job_status()` which publishes to `job_updates`. The async pipeline path calls `manager.send_to_user()` directly (since it's in the same event loop). Both appear as the same type of event on the frontend.
+The JobLens pipeline uses `background_tasks.add_task()` and `asyncio.gather()` for step parallelism within a single async function. This keeps the orchestration in the API process, shares the same database/session patterns as the rest of the app, and sends WebSocket progress directly through `manager.send_to_user()`.
 
 ---
 
@@ -244,7 +235,7 @@ Reading through the code, a few patterns are consistent enough to be deliberate:
 
 - **Every engine module is a class with a convenience function.** `QualificationChecker.check()` / `check_qualifications()`. `CoverLetterGenerator.generate()` / `generate_cover_letter()`. This makes testing easy (inject mock LLM) and gives the API layer clean one-liners.
 - **No module reaches outside its boundary for dependencies.** LLM clients are injected. API keys are resolved in one place. No module imports from sibling modules except via the package `__init__`.
-- **Errors are deleted, not failed.** In `analyze_job_task`, if analysis fails, the job is deleted from the database — not left in a failed state. Clean state is preferred over orphaned records.
+- **Pipeline failures are visible.** JobLens emits `joblens_pipeline_failed` with the session and job ids so the UI can render failure state without deleting the user's tracked job.
 - **The engine `__init__.py` wraps all imports in `try/except ImportError`.** The engine can be imported even if specific dependencies (DeepSeek, older modules) aren't available. Graceful degradation by design.
 - **Temperature is never `None` and is always explicit.** Every LLM call in the codebase specifies `temperature=`. Qualification check is `0.0`. Action planner is `0.5`. Disruptive cover letter is `0.85`. These are not defaults — they're considered choices per task.
 

@@ -154,7 +154,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
     ] as const;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[var(--overlay)] backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -186,11 +186,11 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={isUploading || isSubmitting}
-                                    className="px-3 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                                    className="px-3 py-2 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent)] bg-[var(--accent-dim)] hover:bg-[var(--accent)]/20 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {isUploading ? (
                                         <>
-                                            <div className="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                                            <div className="w-4 h-4 border-2 border-[var(--accent-border)] border-t-[var(--accent)] rounded-full animate-spin" />
                                             Parsing...
                                         </>
                                     ) : (
@@ -223,7 +223,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                             key={tab.id}
                             onClick={() => setActiveSection(tab.id)}
                             className={`px-4 py-3 text-sm font-medium transition-all relative ${activeSection === tab.id
-                                ? 'text-indigo-400'
+                                ? 'text-[var(--accent)]'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                 }`}
                         >
@@ -232,7 +232,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                             {activeSection === tab.id && (
                                 <motion.div
                                     layoutId="activeTab"
-                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"
+                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]"
                                 />
                             )}
                         </button>
@@ -268,7 +268,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={exp.title || ''}
                                                     onChange={(e) => updateWorkExperience(expIndex, 'title', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                             <div>
@@ -277,7 +277,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={exp.company || ''}
                                                     onChange={(e) => updateWorkExperience(expIndex, 'company', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                         </div>
@@ -287,7 +287,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                 <label className="text-xs font-medium text-[var(--text-muted)]">Description / Achievements</label>
                                                 <button
                                                     onClick={() => addWorkDescription(expIndex)}
-                                                    className="text-xs text-indigo-400 hover:text-indigo-300"
+                                                    className="text-xs text-[var(--accent)] hover:text-[var(--accent)]"
                                                 >
                                                     + Add bullet point
                                                 </button>
@@ -299,12 +299,12 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                         value={desc}
                                                         onChange={(e) => updateWorkDescription(expIndex, descIndex, e.target.value)}
                                                         rows={2}
-                                                        className="flex-1 px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none resize-none"
+                                                        className="flex-1 px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none resize-none"
                                                         placeholder="Describe your achievement..."
                                                     />
                                                     <button
                                                         onClick={() => removeWorkDescription(expIndex, descIndex)}
-                                                        className="self-start p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
+                                                        className="self-start p-2 text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--danger-dim)] rounded-lg"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -330,7 +330,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                     <h3 className="font-semibold text-[var(--text-primary)]">Technical & Soft Skills</h3>
                                     <button
                                         onClick={addSkill}
-                                        className="px-3 py-1.5 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg flex items-center gap-1"
+                                        className="px-3 py-1.5 text-sm text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] rounded-lg flex items-center gap-1"
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -350,7 +350,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                             />
                                             <button
                                                 onClick={() => removeSkill(index)}
-                                                className="p-1.5 text-red-400 hover:text-red-300 rounded-r-lg hover:bg-red-500/10"
+                                                className="p-1.5 text-[var(--danger)] hover:text-[var(--danger)] rounded-r-lg hover:bg-[var(--danger-dim)]"
                                             >
                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -388,7 +388,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={edu.institution || ''}
                                                     onChange={(e) => updateEducation(eduIndex, 'institution', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                             <div>
@@ -397,7 +397,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={edu.degree || ''}
                                                     onChange={(e) => updateEducation(eduIndex, 'degree', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                             <div>
@@ -406,7 +406,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={edu.field || ''}
                                                     onChange={(e) => updateEducation(eduIndex, 'field', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                             <div>
@@ -415,7 +415,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                     type="text"
                                                     value={edu.gpa || ''}
                                                     onChange={(e) => updateEducation(eduIndex, 'gpa', e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                    className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                                 />
                                             </div>
                                         </div>
@@ -441,7 +441,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                 type="text"
                                                 value={resume.basics?.name || ''}
                                                 onChange={(e) => updateBasics('name', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                             />
                                         </div>
                                         <div>
@@ -450,7 +450,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                 type="email"
                                                 value={resume.basics?.email || ''}
                                                 onChange={(e) => updateBasics('email', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                             />
                                         </div>
                                         <div>
@@ -459,7 +459,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                 type="tel"
                                                 value={resume.basics?.phone || ''}
                                                 onChange={(e) => updateBasics('phone', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                             />
                                         </div>
                                         <div>
@@ -468,7 +468,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                                 type="text"
                                                 value={resume.basics?.location || ''}
                                                 onChange={(e) => updateBasics('location', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                                             />
                                         </div>
                                     </div>
@@ -478,7 +478,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                             value={resume.basics?.summary || ''}
                                             onChange={(e) => updateBasics('summary', e.target.value)}
                                             rows={4}
-                                            className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2 text-sm bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none resize-none"
                                         />
                                     </div>
                                 </div>
@@ -510,7 +510,7 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                                             // Invalid JSON, don't update
                                         }
                                     }}
-                                    className="w-full h-[calc(100%-60px)] p-4 font-mono text-xs bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-indigo-500 focus:outline-none resize-none"
+                                    className="w-full h-[calc(100%-60px)] p-4 font-mono text-xs bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none resize-none"
                                     spellCheck={false}
                                 />
                             </motion.div>
@@ -530,11 +530,11 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                     <button
                         onClick={() => onSave(resume)}
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent)] rounded-lg shadow-lg shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {isSubmitting ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
                                 Analyzing...
                             </>
                         ) : (

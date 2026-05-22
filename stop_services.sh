@@ -3,10 +3,6 @@
 # Stop all services for Wand application
 echo "Stopping Wand services..."
 
-# Stop Redis
-echo "Stopping Redis..."
-brew services stop redis
-
 # Read PIDs from file if it exists
 PID_FILE="/Users/nishant/Desktop/wand/.pids"
 if [ -f "$PID_FILE" ]; then
@@ -26,9 +22,6 @@ echo "Cleaning up any remaining processes..."
 # Kill uvicorn processes
 pkill -f "uvicorn api.main:app" 2>/dev/null
 
-# Kill celery worker processes
-pkill -f "celery -A api.celery_app worker" 2>/dev/null
-
 # Kill npm/node processes running on port 3000 (Next.js)
 lsof -ti:3000 | xargs kill -9 2>/dev/null
 
@@ -36,8 +29,6 @@ lsof -ti:3000 | xargs kill -9 2>/dev/null
 lsof -ti:8000 | xargs kill -9 2>/dev/null
 
 echo ""
-echo "✅ All services stopped!"
-echo "Redis: Stopped"
+echo "All services stopped!"
 echo "Backend API: Stopped"
 echo "Frontend: Stopped"  
-echo "Celery Worker: Stopped"

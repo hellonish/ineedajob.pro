@@ -40,12 +40,12 @@ export default function ConfirmationModal({
 
     const confirmStyle: React.CSSProperties = isDestructive
         ? {
-            background: confirmHovered ? 'rgba(248,113,113,0.2)' : 'rgba(248,113,113,0.12)',
-            color: '#f87171',
-            border: confirmHovered ? '1px solid #f87171' : '1px solid rgba(248,113,113,0.25)',
+            background: confirmHovered ? 'var(--danger-dim)' : 'transparent',
+            color: 'var(--danger)',
+            border: '1px solid var(--danger-border)',
         }
         : {
-            background: confirmHovered ? 'rgba(149,128,255,0.15)' : 'var(--accent-dim)',
+            background: confirmHovered ? 'var(--accent-dim)' : 'var(--accent-dim)',
             color: 'var(--accent)',
             border: '1px solid var(--accent-border)',
         };
@@ -61,7 +61,7 @@ export default function ConfirmationModal({
                         exit={{ opacity: 0 }}
                         onClick={onClose}
                         className="fixed inset-0 z-[9999]"
-                        style={{ background: 'rgba(0,0,0,0.65)' }}
+                        style={{ background: 'var(--overlay)' }}
                     />
 
                     {/* Modal */}

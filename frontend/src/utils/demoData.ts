@@ -1,5 +1,4 @@
 import { Job, AnalysisResult, CoverLetter } from './api';
-import { QueueItem } from './store';
 
 /**
  * Demo data matching the actual API schemas.
@@ -282,27 +281,6 @@ export const demoJobs: Job[] = [
     }
 ];
 
-export const demoQueue: QueueItem[] = [
-    {
-        id: "queue-001",
-        jobTitle: "Software Engineer at Google",
-        status: "analyzing",
-        startTime: Date.now() - 45000,
-    },
-    {
-        id: "queue-002",
-        jobTitle: "Product Manager at Meta",
-        status: "pending",
-        startTime: Date.now() - 20000,
-    },
-    {
-        id: "queue-003",
-        jobTitle: "Data Scientist at Netflix",
-        status: "pending",
-        startTime: Date.now() - 10000,
-    }
-];
-
 export const demoUser = {
     id: "550e8400-e29b-41d4-a716-446655440000",
     email: "demo@example.com",
@@ -315,7 +293,7 @@ export const demoCoverLetters: CoverLetter[] = [
     {
         id: "cl-001",
         job_id: "550e8400-e29b-41d4-a716-446655440001",
-        mode: "professional",
+        mode: "regular",
         content: {
             full_letter: `Dear Hiring Manager,
 
@@ -334,7 +312,7 @@ Sincerely,
     {
         id: "cl-002",
         job_id: "550e8400-e29b-41d4-a716-446655440003",
-        mode: "conversational",
+        mode: "regular",
         content: {
             full_letter: `Hi Team at DataFlow Analytics,
 
@@ -355,7 +333,7 @@ Best,
     {
         id: "cl-003",
         job_id: "550e8400-e29b-41d4-a716-446655440001",
-        mode: "creative",
+        mode: "storyline",
         content: {
             full_letter: `Hey TechCorp Team!
 

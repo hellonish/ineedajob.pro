@@ -16,6 +16,17 @@
   --accent:        #c15f3c;   /* 193, 95, 60 — terracotta                 */
   --accent-dim:    rgba(193, 95, 60, 0.08);
   --accent-border: rgba(193, 95, 60, 0.3);
+  --on-accent:     #ffffff;
+  --overlay:       rgba(30, 26, 22, 0.62);
+  --success:       #5f7f46;
+  --success-dim:   rgba(95, 127, 70, 0.1);
+  --success-border:rgba(95, 127, 70, 0.28);
+  --warning:       #ad7a2b;
+  --warning-dim:   rgba(173, 122, 43, 0.1);
+  --warning-border:rgba(173, 122, 43, 0.28);
+  --danger:        #b94f42;
+  --danger-dim:    rgba(185, 79, 66, 0.1);
+  --danger-border: rgba(185, 79, 66, 0.28);
 
   /* Legacy aliases */
   --bg-primary:    var(--bg);
@@ -43,6 +54,17 @@
   --accent:        #d4785a;   /* terracotta lightened for dark readability */
   --accent-dim:    rgba(212, 120, 90, 0.09);
   --accent-border: rgba(212, 120, 90, 0.32);
+  --on-accent:     #1c1916;
+  --overlay:       rgba(0, 0, 0, 0.65);
+  --success:       #8da86a;
+  --success-dim:   rgba(141, 168, 106, 0.12);
+  --success-border:rgba(141, 168, 106, 0.3);
+  --warning:       #d0a05c;
+  --warning-dim:   rgba(208, 160, 92, 0.12);
+  --warning-border:rgba(208, 160, 92, 0.3);
+  --danger:        #df7868;
+  --danger-dim:    rgba(223, 120, 104, 0.12);
+  --danger-border: rgba(223, 120, 104, 0.3);
 
   --bg-primary:    var(--bg);
   --bg-secondary:  var(--surface);
@@ -60,7 +82,7 @@ body {
   background: var(--bg);
   color: var(--text-1);
   font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.15s ease, color 0.15s ease;

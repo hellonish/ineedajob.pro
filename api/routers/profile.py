@@ -37,6 +37,21 @@ ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".txt", ".doc", ".docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
+def _get_profile_parser(file_type: str, file_ext: str):
+    if file_type == "resume":
+        return ResumeParser()
+    if file_type == "linkedin":
+        return LinkedInParser()
+    if file_type == "portfolio":
+        return PortfolioParser()
+    if file_type == "other":
+        if file_ext == ".pdf":
+            return ResumeParser()
+        if file_ext in (".html", ".htm"):
+            return PortfolioParser()
+    return None
+
+
 def _get_or_create_profile(db: Session, user_id: str) -> UserProfile:
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     if not profile:
@@ -88,15 +103,9 @@ async def upload_file(
         buffer.write(file_content)
 
     parsed_data = None
-    if type in ("resume", "linkedin", "portfolio"):
+    parser = _get_profile_parser(type, file_ext)
+    if parser:
         try:
-            if type == "resume":
-                parser = ResumeParser()
-            elif type == "linkedin":
-                parser = LinkedInParser()
-            elif type == "portfolio":
-                parser = PortfolioParser()
-
             parsed_result = parser.parse(file_content)
             parsed_data = parsed_result.model_dump() if hasattr(parsed_result, "model_dump") else parsed_result.dict()
         except Exception as e:

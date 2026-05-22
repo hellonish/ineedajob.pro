@@ -352,7 +352,7 @@ function DeleteIcon({
             className="p-1 rounded transition-opacity"
             style={{
                 opacity: visible ? 1 : 0,
-                color: hovered ? '#f87171' : 'var(--text-3)',
+                color: hovered ? 'var(--danger)' : 'var(--text-3)',
                 pointerEvents: visible ? 'auto' : 'none',
             }}
             title="Delete Report"

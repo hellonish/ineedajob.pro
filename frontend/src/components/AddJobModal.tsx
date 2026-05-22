@@ -137,7 +137,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                         exit={{ opacity: 0 }}
                         onClick={handleClose}
                         className="absolute inset-0"
-                        style={{ background: 'rgba(0,0,0,0.6)' }}
+                        style={{ background: 'var(--overlay)' }}
                     />
 
                     {/* Dialog */}
@@ -145,7 +145,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                         initial={{ scale: 0.96, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.96, opacity: 0 }}
-                        className="relative w-full max-w-lg rounded-xl flex flex-col"
+                        className="relative w-full max-w-2xl rounded-xl flex flex-col"
                         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
                     >
                         {/* ── Header ─────────────────────────────────────── */}
@@ -153,7 +153,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                             className="flex items-center justify-between px-5 py-4"
                             style={{ borderBottom: '1px solid var(--border)' }}
                         >
-                            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>
+                            <h2 className="text-base font-semibold" style={{ color: 'var(--text-1)' }}>
                                 Add Job
                             </h2>
                             <button
@@ -178,7 +178,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     <button
                                         key={opt.key}
                                         onClick={() => setAddMode(opt.key)}
-                                        className="flex-1 flex flex-col items-center py-2 px-3 rounded-md text-xs transition-all cursor-pointer"
+                                        className="flex-1 flex flex-col items-center py-2 px-3 rounded-md text-sm transition-all cursor-pointer"
                                         style={{
                                             background: addMode === opt.key ? 'var(--card)' : 'transparent',
                                             color: addMode === opt.key ? 'var(--text-1)' : 'var(--text-3)',
@@ -188,7 +188,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     >
                                         <span>{opt.label}</span>
                                         <span
-                                            className="text-[10px] mt-0.5"
+                                            className="text-xs mt-0.5"
                                             style={{ color: 'var(--text-3)', opacity: 0.8 }}
                                         >
                                             {opt.desc}
@@ -430,7 +430,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     className="px-4 py-1.5 text-sm rounded-md cursor-pointer transition-colors"
                                     style={{
                                         background: canAnalyze && !isCreating ? 'var(--accent)' : 'var(--surface)',
-                                        color: canAnalyze && !isCreating ? '#fff' : 'var(--text-3)',
+                                        color: canAnalyze && !isCreating ? 'var(--on-accent)' : 'var(--text-3)',
                                         border: '1px solid transparent',
                                         cursor: canAnalyze && !isCreating ? 'pointer' : 'not-allowed',
                                     }}
@@ -444,7 +444,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     className="px-4 py-1.5 text-sm rounded-md cursor-pointer transition-colors"
                                     style={{
                                         background: canTrack && !isCreating ? 'var(--accent)' : 'var(--surface)',
-                                        color: canTrack && !isCreating ? '#fff' : 'var(--text-3)',
+                                        color: canTrack && !isCreating ? 'var(--on-accent)' : 'var(--text-3)',
                                         border: '1px solid transparent',
                                         cursor: canTrack && !isCreating ? 'pointer' : 'not-allowed',
                                     }}

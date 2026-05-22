@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ProfileFile } from '@/utils/api';
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    resume: { bg: 'rgba(59,130,246,0.08)', text: '#3b82f6', border: 'rgba(59,130,246,0.2)' },
-    linkedin: { bg: 'rgba(6,182,212,0.08)', text: '#06b6d4', border: 'rgba(6,182,212,0.2)' },
-    portfolio: { bg: 'rgba(168,85,247,0.08)', text: '#a855f7', border: 'rgba(168,85,247,0.2)' },
+    resume: { bg: 'var(--accent-dim)', text: 'var(--accent)', border: 'var(--accent-border)' },
+    linkedin: { bg: 'var(--accent-dim)', text: 'var(--accent)', border: 'var(--accent-border)' },
+    portfolio: { bg: 'var(--accent-dim)', text: 'var(--accent)', border: 'var(--accent-border)' },
     other: { bg: 'var(--surface)', text: 'var(--text-3)', border: 'var(--border)' },
 };
 
@@ -95,15 +95,15 @@ export default function ProfileFileList({
                                             {f.filename}
                                         </span>
                                         <span
-                                            className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
+                                            className="text-xs uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
                                             style={{ background: tc.bg, color: tc.text, border: `1px solid ${tc.border}` }}
                                         >
                                             {f.file_type}
                                         </span>
                                         {f.parsed_data && (
                                             <span
-                                                className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
-                                                style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
+                                                className="text-xs uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
+                                                style={{ background: 'var(--success-dim)', color: 'var(--success)' }}
                                             >
                                                 Parsed
                                             </span>
@@ -192,9 +192,9 @@ export default function ProfileFileList({
                                             <button
                                                 onClick={() => onDelete(f.id)}
                                                 className="px-2 py-1 text-xs rounded-md cursor-pointer transition-colors"
-                                                style={{ border: '1px solid transparent', color: '#f87171', background: 'rgba(239,68,68,0.08)' }}
-                                                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)'; }}
-                                                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.08)'; }}
+                                                style={{ border: '1px solid transparent', color: 'var(--danger)', background: 'var(--danger-dim)' }}
+                                                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--danger-dim)'; }}
+                                                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--danger-dim)'; }}
                                             >
                                                 Remove
                                             </button>

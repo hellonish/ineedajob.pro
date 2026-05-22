@@ -71,7 +71,7 @@ export default function Header() {
                                     style={{
                                         position: 'relative',
                                         padding: '4px 10px',
-                                        fontSize: '13.5px',
+                                        fontSize: '14px',
                                         fontWeight: 500,
                                         cursor: 'pointer',
                                         background: 'none',
@@ -178,7 +178,7 @@ export default function Header() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: 'var(--accent)',
-                                        fontSize: '11px',
+                                        fontSize: '12px',
                                         fontWeight: 700,
                                         flexShrink: 0,
                                     }}
@@ -188,7 +188,7 @@ export default function Header() {
                             )}
                             <span
                                 style={{
-                                    fontSize: '13.5px',
+                                    fontSize: '14px',
                                     fontWeight: 500,
                                     color: 'var(--text-1)',
                                     maxWidth: '120px',
@@ -239,12 +239,12 @@ export default function Header() {
                                             borderBottom: '1px solid var(--border)',
                                         }}
                                     >
-                                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)', margin: 0 }}>
+                                        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', margin: 0 }}>
                                             {user?.name}
                                         </p>
                                         <p
                                             style={{
-                                                fontSize: '12px',
+                                                fontSize: '13px',
                                                 color: 'var(--text-3)',
                                                 margin: '2px 0 0',
                                                 overflow: 'hidden',
@@ -340,15 +340,15 @@ function DropdownItem({
                 border: 'none',
                 background: hovered
                     ? danger
-                        ? 'rgba(239,68,68,0.08)'
+                        ? 'var(--danger-dim)'
                         : 'var(--hover)'
                     : 'none',
                 color: danger
-                    ? '#f87171'
+                    ? 'var(--danger)'
                     : hovered
                     ? 'var(--text-1)'
                     : 'var(--text-2)',
-                fontSize: '13px',
+                fontSize: '14px',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'background 0.12s ease, color 0.12s ease',

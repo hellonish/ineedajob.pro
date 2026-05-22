@@ -3,6 +3,7 @@ Authentication Router - Google OAuth + User Settings
 """
 
 import os
+from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -17,9 +18,17 @@ from engine.models import LLMClient
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
+def _clear_google_oauth_state(request: Request) -> None:
+    """Remove stale Authlib state entries before starting a new OAuth flow."""
+    for key in list(request.session.keys()):
+        if key.startswith("_state_google_"):
+            request.session.pop(key, None)
+
+
 @router.get("/google")
 async def google_login(request: Request):
     """Redirect to Google OAuth."""
+    _clear_google_oauth_state(request)
     # Use explicit redirect URI to match Google Console config
     redirect_uri = "http://localhost:8000/api/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
@@ -49,14 +58,14 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         # Redirect to frontend with token
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
         return RedirectResponse(
-            url=f"{frontend_url}/auth/callback?token={access_token}"
+            url=f"{frontend_url}/auth/callback?{urlencode({'token': access_token})}"
         )
         
     except Exception as e:
         # Redirect to frontend with error
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
         return RedirectResponse(
-            url=f"{frontend_url}/login?error={str(e)}"
+            url=f"{frontend_url}/auth/callback?{urlencode({'error': str(e)})}"
         )
 
 

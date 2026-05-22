@@ -280,6 +280,13 @@ export interface CoverLetterCreate {
     company_name?: string;
 }
 
+export interface JDToneAnalyzeRequest {
+    job_id?: string;
+    jd_text?: string;
+    company_name?: string;
+    mode?: string;
+}
+
 export interface JDToneAnalysis {
     recommended_mode: string;
     confidence: number;
@@ -323,33 +330,6 @@ export interface NewsResponse {
     company_name: string;
     articles: NewsArticle[];
     total_results: number;
-}
-
-// Queue Types
-export interface QueueJobRequest {
-    job_posting: Record<string, unknown>;
-    resume: Record<string, unknown>;
-    unified_profile?: Record<string, unknown>; // Optional, if using profile data
-}
-
-export interface QueueJobResponse {
-    job_id: string;
-    task_id: string;
-    position: number;
-    status: string;
-}
-
-export interface QueueJobStatus {
-    id: string;
-    status: string;
-    job_title: string;
-    company: string;
-}
-
-export interface QueueStatusResponse {
-    queued: number;
-    processing: number;
-    jobs: QueueJobStatus[];
 }
 
 // ============================================================================
@@ -419,7 +399,7 @@ export const api = {
     getCoverLetter: (id: string): Promise<CoverLetter> => fetchWithAuth(`/api/cover-letters/${id}`),
     createCoverLetter: (data: CoverLetterCreate): Promise<CoverLetter> =>
         fetchWithAuth('/api/cover-letters', { method: 'POST', body: JSON.stringify(data) }),
-    analyzeJDTone: (data: CoverLetterCreate): Promise<JDToneAnalysis> =>
+    analyzeJDTone: (data: JDToneAnalyzeRequest): Promise<JDToneAnalysis> =>
         fetchWithAuth('/api/cover-letters/analyze-jd', { method: 'POST', body: JSON.stringify(data) }),
     deleteCoverLetter: (id: string): Promise<void> => fetchWithAuth(`/api/cover-letters/${id}`, { method: 'DELETE' }),
     updateCoverLetter: (id: string, data: { full_letter?: string; content?: Record<string, unknown> }): Promise<CoverLetter> =>
@@ -529,18 +509,6 @@ export const api = {
 
     // News
     getNews: (companyName: string): Promise<NewsResponse> => fetchWithAuth(`/api/news/${encodeURIComponent(companyName)}`),
-
-    // Queue
-    queueJob: (data: QueueJobRequest): Promise<QueueJobResponse> =>
-        fetchWithAuth('/api/queue/jobs', { method: 'POST', body: JSON.stringify(data) }),
-
-    // Batch queueing
-    queueJobsBatch: (data: QueueJobRequest[]): Promise<QueueJobResponse[]> =>
-        fetchWithAuth('/api/queue/jobs/batch', { method: 'POST', body: JSON.stringify(data) }),
-
-    getQueueStatus: (): Promise<QueueStatusResponse> => fetchWithAuth('/api/queue/status'),
-
-    cancelJob: (jobId: string): Promise<void> => fetchWithAuth(`/api/queue/jobs/${jobId}`, { method: 'DELETE' }),
 
     // JobLens
     createJobLensSession: (data: { job_id?: string }): Promise<JobLensSession> =>

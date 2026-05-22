@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/utils/store';
 import { api, CoverLetter, JDToneAnalysis } from '@/utils/api';
@@ -16,7 +16,7 @@ const MODES = [
     { id: 'custom', label: 'Custom Prompt', desc: 'Write your intent — AI enhances it' },
 ];
 
-export default function QuickCoverLetterPage() {
+function QuickCoverLetterContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { token, isAuthenticated, _hasHydrated } = useStore();
@@ -29,7 +29,6 @@ export default function QuickCoverLetterPage() {
     const [generating, setGenerating] = useState(false);
     const [selectedMode, setSelectedMode] = useState('auto');
     const [customPrompt, setCustomPrompt] = useState('');
-    const [includeNews, setIncludeNews] = useState(false);
 
     const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
     const [history, setHistory] = useState<CoverLetter[]>([]);
@@ -127,7 +126,6 @@ export default function QuickCoverLetterPage() {
                 company_name: companyName || undefined,
                 mode: selectedMode,
                 custom_prompt: selectedMode === 'custom' ? customPrompt : undefined,
-                include_news: includeNews,
             });
             setHistory(prev => [result, ...prev]);
             setCoverLetter(result);
@@ -227,7 +225,7 @@ export default function QuickCoverLetterPage() {
                 <Header />
             </div>
 
-            <div className="max-w-5xl mx-auto px-6 py-8">
+            <div className="max-w-6xl mx-auto px-6 py-8">
                 {/* Header Actions */}
                 <div className="flex items-center justify-between mb-8 print:hidden">
                     <button
@@ -242,8 +240,8 @@ export default function QuickCoverLetterPage() {
                                 onClick={handleCopy}
                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
                                     copied
-                                        ? 'bg-green-500/10 border border-green-500 text-green-400'
-                                        : 'text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-indigo-500/50'
+                                        ? 'bg-[var(--success-dim)] border border-[var(--success)] text-[var(--success)]'
+                                        : 'text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-[var(--accent-border)]'
                                 }`}
                             >
                                 {copied ? (
@@ -264,7 +262,7 @@ export default function QuickCoverLetterPage() {
                             </button>
                             <button
                                 onClick={handleDownload}
-                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors cursor-pointer shadow-lg shadow-indigo-500/20"
+                                className="px-4 py-2 text-sm font-medium text-[var(--on-accent)] bg-[var(--accent)] hover:opacity-90 rounded-lg transition-colors cursor-pointer shadow-lg shadow-none"
                             >
                                 Download as PDF
                             </button>
@@ -272,14 +270,14 @@ export default function QuickCoverLetterPage() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.6fr)] gap-8">
                     {/* Controls Column */}
                     <div className="print:hidden space-y-6">
                         <div>
                             <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Quick Cover Letter</h1>
                             {companyName && (
                                 <p className="text-[var(--text-secondary)]">
-                                    For <span className="font-semibold text-indigo-400">{companyName}</span>
+                                    For <span className="font-semibold text-[var(--accent)]">{companyName}</span>
                                 </p>
                             )}
                         </div>
@@ -293,7 +291,7 @@ export default function QuickCoverLetterPage() {
                                         onClick={() => setSelectedMode(m.id)}
                                         className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                                             selectedMode === m.id
-                                                ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
+                                                ? 'bg-[var(--accent-dim)] border-[var(--accent)] text-[var(--accent)]'
                                                 : 'border-[var(--border-color)] hover:border-[var(--text-muted)] text-[var(--text-primary)]'
                                         }`}
                                     >
@@ -306,14 +304,14 @@ export default function QuickCoverLetterPage() {
                             {/* Auto-detect result */}
                             {selectedMode === 'auto' && analyzingTone && (
                                 <div className="mt-4 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                                     Analyzing job description...
                                 </div>
                             )}
 
                             {selectedMode === 'auto' && toneAnalysis && (
-                                <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                                    <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">
+                                <div className="mt-4 p-3 bg-[var(--warning-dim)] border border-[var(--warning-border)] rounded-lg">
+                                    <div className="text-xs font-semibold text-[var(--warning)] uppercase tracking-wider mb-1">
                                         Detected: {toneAnalysis.recommended_mode}
                                     </div>
                                     <div className="text-xs text-[var(--text-secondary)]">
@@ -321,7 +319,7 @@ export default function QuickCoverLetterPage() {
                                     </div>
                                     <div className="flex flex-wrap gap-1 mt-2">
                                         {toneAnalysis.tone_signals.slice(0, 4).map((s) => (
-                                            <span key={s} className="px-2 py-0.5 bg-[var(--bg-primary)] text-[var(--text-muted)] text-[10px] rounded-full">
+                                            <span key={s} className="px-2 py-0.5 bg-[var(--bg-primary)] text-[var(--text-muted)] text-xs rounded-full">
                                                 {s}
                                             </span>
                                         ))}
@@ -340,39 +338,20 @@ export default function QuickCoverLetterPage() {
                                         onChange={(e) => setCustomPrompt(e.target.value)}
                                         placeholder="e.g., Make it sound confident, mention my startup experience, focus on leadership..."
                                         rows={4}
-                                        className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                        className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent-border)] focus:border-[var(--accent)] transition-all"
                                     />
                                 </div>
                             )}
 
-                            {/* News toggle */}
-                            <div className="mt-4 flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
-                                <div>
-                                    <div className="text-sm font-medium text-[var(--text-primary)]">Include Company News</div>
-                                    <div className="text-xs text-[var(--text-muted)]">Enriches the letter with recent news</div>
-                                </div>
-                                <button
-                                    onClick={() => setIncludeNews(!includeNews)}
-                                    className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-                                        includeNews ? 'bg-indigo-500' : 'bg-[var(--border-color)]'
-                                    }`}
-                                >
-                                    <div
-                                        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${
-                                            includeNews ? 'translate-x-5' : ''
-                                        }`}
-                                    />
-                                </button>
-                            </div>
-
                             <button
                                 onClick={handleGenerate}
                                 disabled={generating}
-                                className={`w-full mt-6 py-3 rounded-xl font-bold text-white shadow-lg transition-all transform ${
-                                    generating
-                                        ? 'bg-gray-500 cursor-not-allowed opacity-50'
-                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 hover:shadow-indigo-500/25'
-                                }`}
+                                className="w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{
+                                    background: generating ? 'var(--surface)' : 'var(--accent)',
+                                    color: generating ? 'var(--text-3)' : 'var(--on-accent)',
+                                    border: '1px solid transparent',
+                                }}
                             >
                                 {generating ? 'Writing...' : 'Generate New'}
                             </button>
@@ -392,13 +371,13 @@ export default function QuickCoverLetterPage() {
                                             }}
                                             className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                                                 coverLetter?.id === h.id
-                                                    ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
+                                                    ? 'bg-[var(--accent-dim)] border-[var(--accent)] text-[var(--accent)]'
                                                     : 'border-[var(--border-color)] hover:border-[var(--text-muted)] text-[var(--text-primary)]'
                                             }`}
                                         >
                                             <div className="flex justify-between items-center mb-1">
                                                 <span className="text-xs font-bold uppercase">
-                                                    {h.content?.mode_label || h.mode}
+                                                    {String(h.content?.mode_label || h.mode)}
                                                 </span>
                                             </div>
                                             <div className="text-xs text-[var(--text-muted)]">
@@ -412,20 +391,20 @@ export default function QuickCoverLetterPage() {
                     </div>
 
                     {/* Preview Column */}
-                    <div className="lg:col-span-2">
+                    <div className="min-w-0">
                         {coverLetter ? (
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-white text-gray-800 border border-gray-200 rounded-xl shadow-sm min-h-[600px] print:shadow-none print:border-none print:rounded-none print:min-h-0 flex flex-col"
+                                className="bg-[var(--card)] text-[var(--text-1)] border border-[var(--border)] rounded-xl shadow-sm min-h-[600px] print:shadow-none print:border-none print:rounded-none print:min-h-0 flex flex-col"
                             >
                                 {/* Edit/Save Controls */}
-                                <div className="flex items-center justify-end gap-2 p-4 border-b border-gray-100 print:hidden">
+                                <div className="flex items-center justify-end gap-2 p-4 border-b border-[var(--border)] print:hidden">
                                     {isEditing ? (
                                         <>
                                             <button
                                                 onClick={handleCancelEdit}
-                                                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                                className="px-3 py-1.5 text-sm text-[var(--text-2)] hover:text-[var(--text-1)] transition-colors"
                                                 disabled={saving}
                                             >
                                                 Cancel
@@ -433,10 +412,10 @@ export default function QuickCoverLetterPage() {
                                             <button
                                                 onClick={handleSave}
                                                 disabled={saving}
-                                                className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                                className="px-4 py-1.5 text-sm font-medium text-[var(--on-accent)] bg-[var(--success)] hover:opacity-90 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                                             >
                                                 {saving ? (
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                    <div className="w-4 h-4 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
                                                 ) : (
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -448,7 +427,7 @@ export default function QuickCoverLetterPage() {
                                     ) : (
                                         <button
                                             onClick={handleEdit}
-                                            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
+                                            className="px-3 py-1.5 text-sm text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--hover)] rounded-lg transition-colors flex items-center gap-1.5"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -464,11 +443,11 @@ export default function QuickCoverLetterPage() {
                                         <textarea
                                             value={editedText}
                                             onChange={(e) => setEditedText(e.target.value)}
-                                            className="w-full h-full min-h-[500px] p-4 text-gray-800 font-serif text-sm leading-relaxed border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            className="w-full h-full min-h-[500px] p-4 text-[var(--text-1)] font-serif text-sm leading-relaxed border border-[var(--border)] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]"
                                             placeholder="Edit your cover letter..."
                                         />
                                     ) : (
-                                        <div className="prose prose-sm max-w-none prose-p:my-3 prose-p:text-gray-800 prose-headings:text-gray-900 prose-strong:text-gray-900">
+                                        <div className="prose prose-sm max-w-none prose-p:my-3 prose-p:text-[var(--text-1)] prose-headings:text-[var(--text-1)] prose-strong:text-[var(--text-1)]">
                                             <ReactMarkdown>
                                                 {(() => {
                                                     const fl = coverLetter.content.full_letter;
@@ -492,5 +471,20 @@ export default function QuickCoverLetterPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function QuickCoverLetterPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--bg-primary)]">
+                <Header />
+                <div className="flex items-center justify-center h-[80vh]">
+                    <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
+                </div>
+            </div>
+        }>
+            <QuickCoverLetterContent />
+        </Suspense>
     );
 }

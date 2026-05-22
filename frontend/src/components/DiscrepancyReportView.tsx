@@ -47,11 +47,11 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
     const report = data as DiscrepancyResult;
     const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'table'>('overview');
 
-    const scoreColor = report.consistency_score >= 90 ? 'text-green-400' :
-        report.consistency_score >= 70 ? 'text-yellow-400' : 'text-red-400';
+    const scoreColor = report.consistency_score >= 90 ? 'text-[var(--success)]' :
+        report.consistency_score >= 70 ? 'text-[var(--warning)]' : 'text-[var(--danger)]';
 
-    const scoreBg = report.consistency_score >= 90 ? 'bg-green-400' :
-        report.consistency_score >= 70 ? 'bg-yellow-400' : 'bg-red-400';
+    const scoreBg = report.consistency_score >= 90 ? 'bg-[var(--success)]' :
+        report.consistency_score >= 70 ? 'bg-[var(--warning)]' : 'bg-[var(--danger)]';
 
     return (
         <div className="space-y-8">
@@ -62,7 +62,7 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                         <path
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                             fill="none"
-                            stroke="#333"
+                            stroke="var(--border)"
                             strokeWidth="4"
                         />
                         <path
@@ -76,7 +76,7 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className={`text-2xl font-bold ${scoreColor}`}>{report.consistency_score}%</span>
-                        <span className="text-[10px] text-[var(--text-muted)] uppercase">Consistent</span>
+                        <span className="text-xs text-[var(--text-muted)] uppercase">Consistent</span>
                     </div>
                 </div>
                 <div>
@@ -95,7 +95,7 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`px-4 py-2 text-sm font-medium capitalize transition-colors relative ${activeTab === tab
-                            ? 'text-indigo-400'
+                            ? 'text-[var(--accent)]'
                             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                             }`}
                     >
@@ -103,7 +103,7 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                         {activeTab === tab && (
                             <motion.div
                                 layoutId="activeTab"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]"
                             />
                         )}
                     </button>
@@ -115,12 +115,12 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Recommendations */}
                     {report.recommendations?.length > 0 && (
-                        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-6">
-                            <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-wide mb-4">Recommended Actions</h4>
+                        <div className="bg-[var(--accent-dim)] border border-[var(--accent-border)] rounded-xl p-6">
+                            <h4 className="text-sm font-bold text-[var(--accent)] uppercase tracking-wide mb-4">Recommended Actions</h4>
                             <ul className="space-y-2">
                                 {report.recommendations.map((rec, i) => (
                                     <li key={i} className="flex items-start gap-2 text-[var(--text-primary)] text-sm">
-                                        <span className="text-indigo-400 mt-1">•</span>
+                                        <span className="text-[var(--accent)] mt-1">•</span>
                                         {rec}
                                     </li>
                                 ))}
@@ -135,13 +135,13 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                             <div className="space-y-4">
                                 {report.discrepancies.map((disc, i) => (
                                     <div key={i} className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 flex gap-4">
-                                        <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${disc.severity === 'high' ? 'bg-red-500' : disc.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                                        <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${disc.severity === 'high' ? 'bg-[var(--danger)]' : disc.severity === 'medium' ? 'bg-[var(--warning)]' : 'bg-[var(--accent)]'
                                             }`} />
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start mb-1">
                                                 <h5 className="font-medium text-[var(--text-primary)]">{disc.field}</h5>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${disc.severity === 'high' ? 'bg-red-500/10 text-red-400' :
-                                                    disc.severity === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-blue-500/10 text-blue-400'
+                                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${disc.severity === 'high' ? 'bg-[var(--danger-dim)] text-[var(--danger)]' :
+                                                    disc.severity === 'medium' ? 'bg-[var(--warning-dim)] text-[var(--warning)]' : 'bg-[var(--accent-dim)] text-[var(--accent)]'
                                                     }`}>
                                                     {disc.severity}
                                                 </span>
@@ -150,15 +150,15 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                                             <div className="grid grid-cols-3 gap-2 text-xs bg-[var(--bg-secondary)] p-3 rounded border border-[var(--border-color)]">
                                                 <div>
                                                     <span className="block text-[var(--text-muted)] mb-1">Resume</span>
-                                                    <span className="text-[var(--text-primary)]">{disc.resume || <span className="text-gray-600 italic">None</span>}</span>
+                                                    <span className="text-[var(--text-primary)]">{disc.resume || <span className="text-[var(--text-2)] italic">None</span>}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-[var(--text-muted)] mb-1">LinkedIn</span>
-                                                    <span className="text-[var(--text-primary)]">{disc.linkedin || <span className="text-gray-600 italic">None</span>}</span>
+                                                    <span className="text-[var(--text-primary)]">{disc.linkedin || <span className="text-[var(--text-2)] italic">None</span>}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-[var(--text-muted)] mb-1">Portfolio</span>
-                                                    <span className="text-[var(--text-primary)]">{disc.portfolio || <span className="text-gray-600 italic">None</span>}</span>
+                                                    <span className="text-[var(--text-primary)]">{disc.portfolio || <span className="text-[var(--text-2)] italic">None</span>}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -219,7 +219,7 @@ export default function DiscrepancyReportView({ data }: DiscrepancyReportViewPro
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
                             {report.comparison_table?.map((item, i) => (
-                                <tr key={i} className={`group hover:bg-[var(--bg-secondary)/50] transition-colors ${item.status === 'mismatch' ? 'bg-red-500/5' : ''
+                                <tr key={i} className={`group hover:bg-[var(--bg-secondary)/50] transition-colors ${item.status === 'mismatch' ? 'bg-[var(--danger-dim)]' : ''
                                     }`}>
                                     <td className="px-4 py-3 font-medium text-[var(--text-secondary)] w-24">{item.category}</td>
                                     <td className="px-4 py-3 text-[var(--text-primary)] w-48">{item.field}</td>
@@ -246,14 +246,14 @@ function SkillCard({ title, skills, type, description }: { title: string, skills
     if (!skills || skills.length === 0) return null;
 
     return (
-        <div className={`rounded-xl border p-4 ${type === 'success' ? 'bg-green-500/5 border-green-500/20' : 'bg-yellow-500/5 border-yellow-500/20'
+        <div className={`rounded-xl border p-4 ${type === 'success' ? 'bg-[var(--success-dim)] border-[var(--success-border)]' : 'bg-[var(--warning-dim)] border-[var(--warning-border)]'
             }`}>
-            <h4 className={`font-bold mb-1 ${type === 'success' ? 'text-green-400' : 'text-yellow-400'
+            <h4 className={`font-bold mb-1 ${type === 'success' ? 'text-[var(--success)]' : 'text-[var(--warning)]'
                 }`}>{title}</h4>
             <p className="text-xs text-[var(--text-muted)] mb-3">{description}</p>
             <div className="flex flex-wrap gap-2">
                 {skills.map((skill, i) => (
-                    <span key={i} className={`text-xs px-2 py-1 rounded bg-[var(--bg-primary)] border border-[var(--border-color)] ${type === 'success' ? 'text-green-300' : 'text-yellow-300'
+                    <span key={i} className={`text-xs px-2 py-1 rounded bg-[var(--bg-primary)] border border-[var(--border-color)] ${type === 'success' ? 'text-[var(--success)]' : 'text-[var(--warning)]'
                         }`}>
                         {skill}
                     </span>
@@ -269,7 +269,7 @@ function ValueCell({ value, status, source, item }: { value: string | null, stat
     // Ideally we comparing strictly but let's just show red text if status is mismatch
 
     return (
-        <span className={`${isMissing ? 'text-gray-600 italic' : 'text-[var(--text-secondary)]'} ${status === 'mismatch' ? 'text-red-400' : ''
+        <span className={`${isMissing ? 'text-[var(--text-2)] italic' : 'text-[var(--text-secondary)]'} ${status === 'mismatch' ? 'text-[var(--danger)]' : ''
             }`}>
             {value || 'Missing'}
         </span>

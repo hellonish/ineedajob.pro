@@ -192,7 +192,7 @@ export default function SettingsPage() {
                                 <span
                                     className="text-sm"
                                     style={{
-                                        color: saveMessage.includes('Failed') ? '#f87171' : '#4ade80',
+                                        color: saveMessage.includes('Failed') ? 'var(--danger)' : 'var(--success)',
                                         visibility: saveMessage ? 'visible' : 'hidden',
                                     }}
                                 >
@@ -328,7 +328,7 @@ export default function SettingsPage() {
                                                     <span>{model}</span>
                                                     {model === defaultModel && (
                                                         <span
-                                                            className="text-[10px] px-1.5 py-0.5 rounded"
+                                                            className="text-xs px-1.5 py-0.5 rounded"
                                                             style={{
                                                                 border: '1px solid var(--border)',
                                                                 color: 'var(--text-3)',
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                     <div>
                         <p
                             className="text-xs uppercase tracking-widest mb-4"
-                            style={{ color: '#f87171' }}
+                            style={{ color: 'var(--danger)' }}
                         >
                             Danger Zone
                         </p>
@@ -367,10 +367,10 @@ export default function SettingsPage() {
                             className="text-sm px-4 py-2 rounded-md"
                             style={{
                                 border: deleteHovered
-                                    ? '1px solid #f87171'
-                                    : '1px solid rgba(248,113,113,0.3)',
-                                color: '#f87171',
-                                background: deleteHovered ? 'rgba(248,113,113,0.06)' : 'transparent',
+                                    ? '1px solid var(--danger)'
+                                    : '1px solid var(--danger-border)',
+                                color: 'var(--danger)',
+                                background: deleteHovered ? 'var(--danger-dim)' : 'transparent',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s',
                             }}

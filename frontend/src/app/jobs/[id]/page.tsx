@@ -54,7 +54,7 @@ function arr<T = unknown>(val: unknown): T[] {
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
 function ScoreBadge({ score, label }: { score: number; label: string }) {
-    const color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : score >= 40 ? 'var(--accent)' : '#f87171';
+    const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : score >= 40 ? 'var(--accent)' : 'var(--danger)';
     return (
         <div className="flex flex-col items-center" style={{ minWidth: 52 }}>
             <div
@@ -63,7 +63,7 @@ function ScoreBadge({ score, label }: { score: number; label: string }) {
             >
                 {score}
             </div>
-            <div className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-3)' }}>
+            <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-3)' }}>
                 {label}
             </div>
         </div>
@@ -89,7 +89,7 @@ function TagList({ items, color }: { items: string[]; color?: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="mb-4">
-            <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--text-3)' }}>{title}</p>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-3)' }}>{title}</p>
             {children}
         </div>
     );
@@ -98,7 +98,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function AIVerdict({ text }: { text: string }) {
     return (
         <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
-            <p className="text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--accent)' }}>AI Verdict</p>
+            <p className="text-xs uppercase tracking-widest mb-1.5" style={{ color: 'var(--accent)' }}>AI Verdict</p>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>{text}</p>
         </div>
     );
@@ -130,7 +130,7 @@ function ProfileExtractView({ data }: { data: Record<string, unknown> }) {
                     ['Role Type', data.primary_role_type],
                 ].filter(([, v]) => v != null).map(([label, val]) => (
                     <div key={s(label)}>
-                        <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
+                        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
                         <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-1)' }}>{s(val)}</p>
                     </div>
                 ))}
@@ -179,7 +179,7 @@ function JDParseView({ data }: { data: Record<string, unknown> }) {
                     ['Salary', data.salary_range],
                 ].map(([label, val]) => (
                     <div key={s(label)}>
-                        <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
+                        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
                         <p className="text-sm mt-0.5" style={{ color: 'var(--text-1)' }}>{s(val)}</p>
                     </div>
                 ))}
@@ -202,14 +202,14 @@ function JDParseView({ data }: { data: Record<string, unknown> }) {
             {greenFlags.length > 0 && (
                 <Section title="Green Flags">
                     {greenFlags.map((f, i) => (
-                        <p key={i} className="text-sm mb-1" style={{ color: '#22c55e' }}>✓ {f}</p>
+                        <p key={i} className="text-sm mb-1" style={{ color: 'var(--success)' }}>✓ {f}</p>
                     ))}
                 </Section>
             )}
             {redFlags.length > 0 && (
                 <Section title="Red Flags">
                     {redFlags.map((f, i) => (
-                        <p key={i} className="text-sm mb-1" style={{ color: '#f87171' }}>⚠ {f}</p>
+                        <p key={i} className="text-sm mb-1" style={{ color: 'var(--danger)' }}>⚠ {f}</p>
                     ))}
                 </Section>
             )}
@@ -230,7 +230,7 @@ function CompanyIntelView({ data }: { data: Record<string, unknown> }) {
                     ['Market', data.market_position],
                 ].map(([label, val]) => (
                     <div key={s(label)} className="p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                        <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
+                        <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{s(label)}</p>
                         <p className="text-sm mt-0.5 font-medium" style={{ color: 'var(--text-1)' }}>{s(val)}</p>
                     </div>
                 ))}
@@ -255,7 +255,7 @@ function CompanyIntelView({ data }: { data: Record<string, unknown> }) {
             {watchOuts.length > 0 && (
                 <Section title="Watch Outs">
                     {watchOuts.map((w, i) => (
-                        <p key={i} className="text-sm mb-1" style={{ color: '#fbbf24' }}>⚠ {w}</p>
+                        <p key={i} className="text-sm mb-1" style={{ color: 'var(--warning)' }}>⚠ {w}</p>
                     ))}
                 </Section>
             )}
@@ -281,10 +281,10 @@ function MatchAnalysisView({ data }: { data: Record<string, unknown> }) {
             {/* Score row */}
             <div className="flex items-center gap-6 p-4 rounded-lg mb-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex flex-col items-center">
-                    <div className="text-3xl font-semibold" style={{ color: overallScore >= 70 ? '#22c55e' : 'var(--accent)' }}>
+                    <div className="text-3xl font-semibold" style={{ color: overallScore >= 70 ? 'var(--success)' : 'var(--accent)' }}>
                         {overallScore}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-3)' }}>Overall</div>
+                    <div className="text-xs uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-3)' }}>Overall</div>
                 </div>
                 <div className="w-px h-10" style={{ background: 'var(--border)' }} />
                 <div className="flex gap-5 flex-wrap">
@@ -310,7 +310,7 @@ function MatchAnalysisView({ data }: { data: Record<string, unknown> }) {
                 <Section title="Strengths">
                     {strengths.map((st, i) => (
                         <div key={i} className="mb-2 flex gap-2">
-                            <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                            <span className="text-[var(--success)] mt-0.5 flex-shrink-0">✓</span>
                             <div>
                                 <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{st.area}</p>
                                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-2)' }}>{st.detail}</p>
@@ -323,9 +323,9 @@ function MatchAnalysisView({ data }: { data: Record<string, unknown> }) {
             {gaps.length > 0 && (
                 <Section title="Gaps">
                     {gaps.map((g, i) => {
-                        const severityColor = g.severity === 'critical' ? '#f87171' : g.severity === 'moderate' ? '#fbbf24' : 'var(--text-3)';
+                        const severityColor = g.severity === 'critical' ? 'var(--danger)' : g.severity === 'moderate' ? 'var(--warning)' : 'var(--text-3)';
                         return (
-                            <div key={i} className="mb-3 p-3 rounded-lg" style={{ background: 'var(--surface)', border: `1px solid ${severityColor}30` }}>
+                            <div key={i} className="mb-3 p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-xs font-medium" style={{ color: severityColor }}>{g.severity}</span>
                                     <span className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{g.area}</span>
@@ -367,8 +367,8 @@ function ContactStrategyView({ data }: { data: Record<string, unknown> }) {
                         <div key={i} className="mb-3 p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                             <div className="flex items-center justify-between mb-1">
                                 <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{s(c.title)}</p>
-                                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{
-                                    background: c.priority === 'high' ? 'rgba(193,95,60,0.1)' : 'var(--surface)',
+                                <span className="text-xs uppercase tracking-wider px-1.5 py-0.5 rounded" style={{
+                                    background: c.priority === 'high' ? 'var(--accent-dim)' : 'var(--surface)',
                                     color: c.priority === 'high' ? 'var(--accent)' : 'var(--text-3)',
                                     border: '1px solid var(--border)',
                                 }}>
@@ -378,7 +378,7 @@ function ContactStrategyView({ data }: { data: Record<string, unknown> }) {
                             <p className="text-xs mb-2" style={{ color: 'var(--text-3)' }}>{s(c.where_to_find)}</p>
                             <p className="text-xs mb-2" style={{ color: 'var(--text-2)' }}>{s(c.why_they_matter)}</p>
                             <div className="p-2 rounded" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>Message Template</p>
+                                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>Message Template</p>
                                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-2)', fontFamily: 'monospace' }}>{s(c.outreach_message)}</p>
                             </div>
                         </div>
@@ -417,8 +417,8 @@ function ActionPlanView({ data }: { data: Record<string, unknown> }) {
                     {resumeEdits.map((e, i) => (
                         <div key={i} className="mb-2 flex gap-2 items-start">
                             <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5" style={{
-                                background: e.action === 'add' ? 'rgba(34,197,94,0.1)' : e.action === 'remove' ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.1)',
-                                color: e.action === 'add' ? '#22c55e' : e.action === 'remove' ? '#f87171' : '#fbbf24',
+                                background: e.action === 'add' ? 'var(--success-dim)' : e.action === 'remove' ? 'var(--danger-dim)' : 'var(--warning-dim)',
+                                color: e.action === 'add' ? 'var(--success)' : e.action === 'remove' ? 'var(--danger)' : 'var(--warning)',
                             }}>
                                 {s(e.action)}
                             </span>
@@ -620,7 +620,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <div>
                         <button
                             onClick={() => router.push('/jobs')}
-                            className="text-xs mb-2 cursor-pointer transition-colors"
+                            className="text-sm mb-2 cursor-pointer transition-colors"
                             style={{ color: 'var(--text-3)', background: 'none', border: 'none', padding: 0 }}
                             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-2)'; }}
                             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-3)'; }}
@@ -635,10 +635,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <div className="flex items-center gap-4">
                         {matchScore != null && (
                             <div className="text-right">
-                                <div className="text-2xl font-semibold tabular-nums" style={{ color: (matchScore as number) >= 70 ? '#22c55e' : 'var(--accent)' }}>
+                                <div className="text-2xl font-semibold tabular-nums" style={{ color: (matchScore as number) >= 70 ? 'var(--success)' : 'var(--accent)' }}>
                                     {matchScore as number}
                                 </div>
-                                <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Match</p>
+                                <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Match</p>
                             </div>
                         )}
 
@@ -646,7 +646,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         <select
                             value={job.status}
                             onChange={e => handleStatusChange(e.target.value)}
-                            className="text-xs rounded-md px-2 py-1.5 cursor-pointer focus:outline-none"
+                            className="text-sm rounded-md px-2 py-1.5 cursor-pointer focus:outline-none"
                             style={{
                                 background: 'var(--surface)',
                                 border: '1px solid var(--border)',
@@ -663,8 +663,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                             className="p-1.5 rounded-md cursor-pointer transition-colors"
                             style={{ color: 'var(--text-3)', background: 'transparent', border: '1px solid var(--border)' }}
                             onMouseEnter={e => {
-                                (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
-                                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)';
+                                (e.currentTarget as HTMLButtonElement).style.color = 'var(--danger)';
+                                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--danger-border)';
                             }}
                             onMouseLeave={e => {
                                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-3)';
@@ -707,15 +707,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                                             {status === 'running' ? (
                                                 <span className="w-2 h-2 rounded-full inline-block animate-pulse" style={{ background: 'var(--accent)' }} />
                                             ) : status === 'done' ? (
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#22c55e' }} />
+                                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: 'var(--success)' }} />
                                             ) : status === 'error' ? (
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#f87171' }} />
+                                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: 'var(--danger)' }} />
                                             ) : (
                                                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: 'var(--border-strong)' }} />
                                             )}
                                         </span>
                                         <span
-                                            className="text-xs leading-snug"
+                                            className="text-sm leading-snug"
                                             style={{ color: isActive ? 'var(--text-1)' : status === 'idle' ? 'var(--text-3)' : 'var(--text-2)' }}
                                         >
                                             {step.label}
@@ -727,14 +727,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
                         {/* Notes */}
                         <div className="mt-4">
-                            <p className="text-[10px] uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-3)' }}>Notes</p>
+                            <p className="text-xs uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-3)' }}>Notes</p>
                             <textarea
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                                 onBlur={handleSaveNotes}
                                 placeholder="Your notes..."
                                 rows={4}
-                                className="w-full rounded-md px-2.5 py-2 text-xs resize-none focus:outline-none transition-colors"
+                                className="w-full rounded-md px-2.5 py-2 text-sm resize-none focus:outline-none transition-colors"
                                 style={{
                                     background: 'var(--card)',
                                     border: '1px solid var(--border)',
@@ -776,7 +776,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                                             </>
                                         ) : status === 'error' ? (
                                             <>
-                                                <p className="text-sm mb-1" style={{ color: '#f87171' }}>Step failed</p>
+                                                <p className="text-sm mb-1" style={{ color: 'var(--danger)' }}>Step failed</p>
                                                 <p className="text-xs" style={{ color: 'var(--text-3)' }}>Check that your profile and LLM settings are configured</p>
                                             </>
                                         ) : (

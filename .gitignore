@@ -36,8 +36,13 @@ env/
 .env.local
 
 # Test outputs
-*.json
-!requirements.json
+job_result.json
+profile.json
+profile_data.json
+debug_output.json
+*_result.json
+*_table.json
+cover_letter_*.json
 
 # Logs
 *.log

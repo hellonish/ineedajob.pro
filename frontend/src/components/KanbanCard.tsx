@@ -23,8 +23,8 @@ function ScoreBadge({ score }: { score: number | undefined }) {
   if (score === undefined || score === null) return null;
 
   const color =
-    score >= 80 ? '#22c55e' :
-    score >= 60 ? '#f59e0b' :
+    score >= 80 ? 'var(--success)' :
+    score >= 60 ? 'var(--warning)' :
     'var(--text-3)';
 
   return (
@@ -225,8 +225,8 @@ export default function KanbanCard({ job, onStatusChange, onClick, onDelete, onA
                   className="flex items-center gap-2 px-3 py-2 text-xs w-full text-left rounded transition-colors"
                   style={{ color: 'var(--text-2)' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
-                    e.currentTarget.style.color = '#f87171';
+                    e.currentTarget.style.background = 'var(--danger-dim)';
+                    e.currentTarget.style.color = 'var(--danger)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
@@ -257,7 +257,7 @@ export default function KanbanCard({ job, onStatusChange, onClick, onDelete, onA
 
         {/* Date added */}
         <span
-          className="text-[10px] font-mono tabular-nums"
+          className="text-xs font-mono tabular-nums"
           style={{ color: 'var(--text-3)' }}
         >
           {formatDate(job.created_at)}

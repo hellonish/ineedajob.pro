@@ -159,7 +159,7 @@ export default function FileUploadZone({ onUploadComplete }: FileUploadZoneProps
                                             className="text-xs px-3 py-1.5 rounded-md cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             style={{
                                                 background: hasPending || isUploading ? 'var(--accent)' : 'var(--surface)',
-                                                color: hasPending || isUploading ? '#fff' : 'var(--text-3)',
+                                                color: hasPending || isUploading ? 'var(--on-accent)' : 'var(--text-3)',
                                                 border: '1px solid transparent',
                                             }}
                                         >
@@ -167,7 +167,7 @@ export default function FileUploadZone({ onUploadComplete }: FileUploadZoneProps
                                         </button>
                                     )}
                                     {allDone && (
-                                        <span className="text-xs px-3 py-1.5" style={{ color: '#22c55e' }}>All uploaded!</span>
+                                        <span className="text-xs px-3 py-1.5" style={{ color: 'var(--success)' }}>All uploaded!</span>
                                     )}
                                     <button
                                         onClick={() => { setPendingFiles([]); setShowPanel(false); }}
@@ -190,7 +190,7 @@ export default function FileUploadZone({ onUploadComplete }: FileUploadZoneProps
                                             <p className="text-xs font-medium truncate" style={{ color: 'var(--text-1)' }}>
                                                 {pf.file.name}
                                             </p>
-                                            <p className="text-[10px]" style={{ color: 'var(--text-3)' }}>
+                                            <p className="text-xs" style={{ color: 'var(--text-3)' }}>
                                                 {(pf.file.size / 1024).toFixed(1)} KB
                                             </p>
                                         </div>
@@ -228,7 +228,7 @@ export default function FileUploadZone({ onUploadComplete }: FileUploadZoneProps
                                                 <button
                                                     onClick={e => { e.stopPropagation(); removePending(i); }}
                                                     className="text-xs px-1.5 py-1 cursor-pointer"
-                                                    style={{ color: '#f87171', background: 'transparent', border: 'none' }}
+                                                    style={{ color: 'var(--danger)', background: 'transparent', border: 'none' }}
                                                 >
                                                     ×
                                                 </button>
@@ -243,11 +243,11 @@ export default function FileUploadZone({ onUploadComplete }: FileUploadZoneProps
                                         )}
 
                                         {pf.status === 'done' && (
-                                            <span className="text-xs" style={{ color: '#22c55e' }}>✓</span>
+                                            <span className="text-xs" style={{ color: 'var(--success)' }}>✓</span>
                                         )}
 
                                         {pf.status === 'error' && (
-                                            <span className="text-xs" style={{ color: '#f87171' }}>Failed</span>
+                                            <span className="text-xs" style={{ color: 'var(--danger)' }}>Failed</span>
                                         )}
                                     </div>
                                 ))}

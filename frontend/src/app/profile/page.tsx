@@ -210,11 +210,11 @@ export default function ProfilePage() {
                             className="text-xs px-3 py-1.5 rounded-md cursor-pointer transition-colors flex-shrink-0 ml-4"
                             style={{
                                 border: '1px solid var(--border)',
-                                color: contextSaved ? '#22c55e' : 'var(--text-2)',
+                                color: contextSaved ? 'var(--success)' : 'var(--text-2)',
                                 background: 'transparent',
                             }}
                             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-1)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = contextSaved ? '#22c55e' : 'var(--text-2)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = contextSaved ? 'var(--success)' : 'var(--text-2)'; }}
                         >
                             {contextSaved ? 'Saved' : savingContext ? 'Saving...' : 'Save'}
                         </button>
@@ -250,7 +250,7 @@ export default function ProfilePage() {
                         className="px-4 py-2 text-sm rounded-md cursor-pointer transition-colors flex-shrink-0 ml-4"
                         style={{
                             background: hasAnyData && !unifying ? 'var(--accent)' : 'var(--surface)',
-                            color: hasAnyData && !unifying ? '#fff' : 'var(--text-3)',
+                            color: hasAnyData && !unifying ? 'var(--on-accent)' : 'var(--text-3)',
                             border: '1px solid transparent',
                             cursor: hasAnyData && !unifying ? 'pointer' : 'not-allowed',
                         }}
@@ -263,7 +263,7 @@ export default function ProfilePage() {
                     <div className="mb-6 rounded-lg p-4" style={{ border: '1px solid var(--border)', background: 'var(--card)' }}>
                         <div className="flex items-center justify-between mb-3">
                             <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>Extracted Profile</p>
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                            <span className="text-xs uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
                                 JobLens Ready
                             </span>
                         </div>

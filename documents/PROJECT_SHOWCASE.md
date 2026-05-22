@@ -40,7 +40,7 @@ Everything streams to the frontend in real time over WebSocket — users watch e
 | Layer | Technology |
 |---|---|
 | API | FastAPI (async, Python 3.12) |
-| Task Queue | Celery + Redis |
+| Background Work | FastAPI BackgroundTasks + asyncio |
 | Database | SQLAlchemy / SQLite |
 | Auth | Google OAuth 2.0 (`authlib`) + JWT (`python-jose`) |
 | LLM Abstraction | `instructor` + OpenAI-compatible client |
@@ -80,18 +80,14 @@ Everything streams to the frontend in real time over WebSocket — users watch e
 │               FastAPI (async)                    │
 │  /api/jobs  /api/profile  /api/cover-letter ...  │
 │                    │                             │
-│       ┌────────────┴────────────┐                │
-│  BackgroundTasks            Celery Workers       │
-│  (JobLens pipeline)         (Analysis pipeline)  │
-└───────┬──────────────────────┬──────────────────┘
-        │                      │
-┌───────▼──────┐    ┌──────────▼──────────────────┐
-│  AI Engine   │    │  Redis                       │
-│  /engine/*   │    │  • Task broker               │
-│  joblens/    │    │  • Result backend            │
-│  analysis/   │    │  • WebSocket pub/sub bridge  │
-│  profile/    │    └─────────────────────────────┘
-│  discrepancy/│
+│              BackgroundTasks                      │
+│              (JobLens pipeline)                   │
+└───────────────────┬─────────────────────────────┘
+                    │
+┌───────────────────▼─────────────────────────────┐
+│  AI Engine                                      │
+│  /engine/*                                      │
+│  joblens/  analysis/  profile/  discrepancy/    │
 └──────────────┘
 ```
 
@@ -276,20 +272,15 @@ def db_write(fn):
 
 ---
 
-### Cross-Process WebSocket Bridge (Redis Pub/Sub)
-
-Celery workers run in a separate process — they can't write directly to a WebSocket. Redis pub/sub bridges the gap:
+### In-Process WebSocket Progress
 
 ```
-Celery Task
-    └─► notify_job_status()
-            └─► Redis PUBLISH "job_updates" {payload}
-                    └─► FastAPI subscriber
-                            └─► manager.send_to_user()
-                                    └─► WebSocket → Client
+BackgroundTasks pipeline
+    └─► manager.send_to_user()
+            └─► WebSocket → Client
 ```
 
-The async pipeline path (FastAPI BackgroundTasks) skips Redis and calls `manager.send_to_user()` directly, since it shares the event loop. Both paths produce identical event shapes on the frontend.
+The JobLens pipeline runs in the API process and emits progress through the shared `ConnectionManager`.
 
 ---
 
@@ -300,7 +291,6 @@ The async pipeline path (FastAPI BackgroundTasks) skips Redis and calls `manager
 ```typescript
 subscribeToJobLens(sessionId, handler)   // per-pipeline-run listener
 subscribeToDiscrepancy(handler)           // module-level emitter
-// job_update events → Zustand store directly
 ```
 
 A new pipeline run subscribes by its `sessionId` — only its step events fire its handler. Other concurrent runs don't cross-contaminate.
@@ -470,7 +460,7 @@ After a user uploads their profile, `ExtractedProfile` is stored on the `UserPro
 
 **Key lever: profile caching.** Step 1 is skipped on every run after first upload. For a user who submits 10 jobs/month, this saves ~$0.04 per user per month — roughly one free run per user per 10 uses.
 
-**Infrastructure costs are near-zero** at this scale: Redis pub/sub payloads are <1KB each; SQLite has no server overhead; Celery workers are I/O-bound (waiting on LLM APIs), not CPU-bound.
+**Infrastructure costs are near-zero** at this scale: SQLite has no server overhead and the API process is mostly I/O-bound while waiting on LLM APIs.
 
 ---
 
