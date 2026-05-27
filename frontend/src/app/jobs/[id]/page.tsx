@@ -11,12 +11,11 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 // ─── Step metadata ────────────────────────────────────────────────────────────
 
 const STEPS = [
-    { key: 'profile_extract', label: 'Profile Extract', icon: '①' },
-    { key: 'jd_parse',        label: 'JD Parse',        icon: '②' },
+    { key: 'profile',         label: 'Profile',         icon: '①' },
+    { key: 'job_description', label: 'Job Description', icon: '②' },
     { key: 'company_intel',   label: 'Company Intel',   icon: '③' },
     { key: 'match_analysis',  label: 'Match Analysis',  icon: '④' },
-    { key: 'contact_strategy',label: 'Contact Strategy',icon: '⑤' },
-    { key: 'action_plan',     label: 'Action Plan',     icon: '⑥' },
+    { key: 'reachout',        label: 'Reachout',        icon: '⑤' },
 ] as const;
 
 type StepKey = typeof STEPS[number]['key'];
@@ -24,12 +23,11 @@ type StepStatus = 'idle' | 'running' | 'done' | 'error';
 
 // Map session fields to step keys
 const SESSION_FIELD: Record<StepKey, keyof JobLensSession> = {
-    profile_extract: 'extracted_profile',
-    jd_parse:        'parsed_jd',
+    profile:         'profile_snapshot',
+    job_description: 'job_description',
     company_intel:   'company_intel',
     match_analysis:  'match_analysis',
-    contact_strategy:'contact_strategy',
-    action_plan:     'action_plan',
+    reachout:        'reachout',
 };
 
 const STATUS_OPTIONS = [
@@ -108,12 +106,11 @@ function AIVerdict({ text }: { text: string }) {
 
 function StepContent({ stepKey, data }: { stepKey: StepKey; data: Record<string, unknown> }) {
     switch (stepKey) {
-        case 'profile_extract': return <ProfileExtractView data={data} />;
-        case 'jd_parse':        return <JDParseView data={data} />;
+        case 'profile':         return <ProfileExtractView data={data} />;
+        case 'job_description': return <JDParseView data={data} />;
         case 'company_intel':   return <CompanyIntelView data={data} />;
         case 'match_analysis':  return <MatchAnalysisView data={data} />;
-        case 'contact_strategy':return <ContactStrategyView data={data} />;
-        case 'action_plan':     return <ActionPlanView data={data} />;
+        case 'reachout':        return <ContactStrategyView data={data} />;
         default:                return null;
     }
 }
@@ -352,9 +349,20 @@ function MatchAnalysisView({ data }: { data: Record<string, unknown> }) {
 }
 
 function ContactStrategyView({ data }: { data: Record<string, unknown> }) {
-    const contacts = arr<Record<string, unknown>>(data.contacts);
+    const contacts = arr<Record<string, unknown>>(data.candidates).length
+        ? arr<Record<string, unknown>>(data.candidates)
+        : arr<Record<string, unknown>>(data.contacts);
     return (
         <div>
+            {Boolean(data.search_plan) && (
+                <Section title="Search Plan">
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
+                        {arr<Record<string, unknown>>((data.search_plan as Record<string, unknown>)?.queries)
+                            .map(query => s(query.query))
+                            .join(' · ')}
+                    </p>
+                </Section>
+            )}
             {Boolean(data.networking_importance) && (
                 <div className="mb-4 flex items-center gap-2">
                     <span className="text-xs" style={{ color: 'var(--text-3)' }}>Networking importance:</span>
@@ -366,21 +374,25 @@ function ContactStrategyView({ data }: { data: Record<string, unknown> }) {
                     {contacts.map((c, i) => (
                         <div key={i} className="mb-3 p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                             <div className="flex items-center justify-between mb-1">
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{s(c.title)}</p>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{s(c.full_name || c.title)}</p>
                                 <span className="text-xs uppercase tracking-wider px-1.5 py-0.5 rounded" style={{
-                                    background: c.priority === 'high' ? 'var(--accent-dim)' : 'var(--surface)',
-                                    color: c.priority === 'high' ? 'var(--accent)' : 'var(--text-3)',
+                                    background: c.confidence_band === 'high' || c.priority === 'high' ? 'var(--accent-dim)' : 'var(--surface)',
+                                    color: c.confidence_band === 'high' || c.priority === 'high' ? 'var(--accent)' : 'var(--text-3)',
                                     border: '1px solid var(--border)',
                                 }}>
-                                    {s(c.priority)}
+                                    {s(c.confidence_band || c.priority)}
                                 </span>
                             </div>
-                            <p className="text-xs mb-2" style={{ color: 'var(--text-3)' }}>{s(c.where_to_find)}</p>
-                            <p className="text-xs mb-2" style={{ color: 'var(--text-2)' }}>{s(c.why_they_matter)}</p>
-                            <div className="p-2 rounded" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>Message Template</p>
-                                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-2)', fontFamily: 'monospace' }}>{s(c.outreach_message)}</p>
-                            </div>
+                            <p className="text-xs mb-2" style={{ color: 'var(--text-3)' }}>{s(c.current_title || c.where_to_find)}</p>
+                            <p className="text-xs mb-2" style={{ color: 'var(--text-2)' }}>{s(c.company || c.why_they_matter)}</p>
+                            {Boolean(c.profile_url || c.outreach_message) && (
+                                <div className="p-2 rounded" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                                    <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>{c.profile_url ? 'Profile' : 'Message Template'}</p>
+                                    <p className="text-xs leading-relaxed break-all" style={{ color: 'var(--text-2)', fontFamily: c.outreach_message ? 'monospace' : undefined }}>
+                                        {s(c.profile_url || c.outreach_message)}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </Section>
@@ -388,84 +400,6 @@ function ContactStrategyView({ data }: { data: Record<string, unknown> }) {
             {Boolean(data.referral_strategy) && (
                 <Section title="Referral Strategy">
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>{s(data.referral_strategy)}</p>
-                </Section>
-            )}
-            {Boolean(data.ai_verdict) && <AIVerdict text={s(data.ai_verdict)} />}
-        </div>
-    );
-}
-
-function ActionPlanView({ data }: { data: Record<string, unknown> }) {
-    const resumeEdits = arr<Record<string, unknown>>(data.resume_edits);
-    const interviewPrep = arr<Record<string, unknown>>(data.interview_prep);
-    const followUp = arr<Record<string, unknown>>(data.follow_up_strategy);
-    const coverLetter = data.cover_letter_plan as Record<string, unknown> | undefined;
-    const prepDays = data.prep_days_needed as number | undefined;
-    return (
-        <div>
-            {prepDays != null && (
-                <div className="mb-4 p-3 rounded-lg flex items-center gap-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                    <span className="text-2xl font-semibold" style={{ color: 'var(--accent)' }}>{prepDays}</span>
-                    <div>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>Days of prep recommended</p>
-                        <p className="text-xs" style={{ color: 'var(--text-3)' }}>Based on your profile vs. job requirements</p>
-                    </div>
-                </div>
-            )}
-            {resumeEdits.length > 0 && (
-                <Section title="Resume Edits">
-                    {resumeEdits.map((e, i) => (
-                        <div key={i} className="mb-2 flex gap-2 items-start">
-                            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5" style={{
-                                background: e.action === 'add' ? 'var(--success-dim)' : e.action === 'remove' ? 'var(--danger-dim)' : 'var(--warning-dim)',
-                                color: e.action === 'add' ? 'var(--success)' : e.action === 'remove' ? 'var(--danger)' : 'var(--warning)',
-                            }}>
-                                {s(e.action)}
-                            </span>
-                            <div>
-                                <p className="text-xs font-medium" style={{ color: 'var(--text-3)' }}>{s(e.section)}</p>
-                                <p className="text-sm" style={{ color: 'var(--text-1)' }}>{s(e.detail)}</p>
-                            </div>
-                        </div>
-                    ))}
-                </Section>
-            )}
-            {Boolean(coverLetter) && (
-                <Section title="Cover Letter Plan">
-                    <div className="p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                        {Boolean(coverLetter?.opening_hook) && (
-                            <p className="text-sm mb-2" style={{ color: 'var(--text-2)', fontStyle: 'italic' }}>&#34;{s(coverLetter?.opening_hook)}&#34;</p>
-                        )}
-                        {arr<string>(coverLetter?.key_points).map((p, i) => (
-                            <p key={i} className="text-xs mb-1" style={{ color: 'var(--text-2)' }}>· {p}</p>
-                        ))}
-                    </div>
-                </Section>
-            )}
-            {interviewPrep.length > 0 && (
-                <Section title="Interview Prep Topics">
-                    {interviewPrep.map((t, i) => (
-                        <div key={i} className="mb-3 p-3 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-1)' }}>{s(t.topic)}</p>
-                            <p className="text-xs italic mb-1" style={{ color: 'var(--text-2)' }}>Q: {s(t.likely_question)}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-3)' }}>Testing: {s(t.what_theyre_testing)}</p>
-                        </div>
-                    ))}
-                </Section>
-            )}
-            {followUp.length > 0 && (
-                <Section title="Follow-up Strategy">
-                    {followUp.map((f, i) => (
-                        <div key={i} className="mb-2 flex gap-3 items-start">
-                            <span className="text-xs px-2 py-0.5 rounded flex-shrink-0" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-3)' }}>
-                                {s(f.day)}
-                            </span>
-                            <div>
-                                <p className="text-sm" style={{ color: 'var(--text-1)' }}>{s(f.action)}</p>
-                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>→ {s(f.who)}</p>
-                            </div>
-                        </div>
-                    ))}
                 </Section>
             )}
             {Boolean(data.ai_verdict) && <AIVerdict text={s(data.ai_verdict)} />}
@@ -483,14 +417,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     const [job, setJob] = useState<Job | null>(null);
     const [session, setSession] = useState<JobLensSession | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeStep, setActiveStep] = useState<StepKey>('action_plan');
+    const [activeStep, setActiveStep] = useState<StepKey>('reachout');
     const [stepStatuses, setStepStatuses] = useState<Record<StepKey, StepStatus>>({
-        profile_extract: 'idle',
-        jd_parse: 'idle',
+        profile: 'idle',
+        job_description: 'idle',
         company_intel: 'idle',
         match_analysis: 'idle',
-        contact_strategy: 'idle',
-        action_plan: 'idle',
+        reachout: 'idle',
     });
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [notes, setNotes] = useState('');
@@ -519,16 +452,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
     const initStepStatuses = (s: JobLensSession) => {
         setStepStatuses({
-            profile_extract: s.extracted_profile ? 'done' : 'idle',
-            jd_parse:        s.parsed_jd        ? 'done' : 'idle',
+            profile:         s.profile_snapshot ? 'done' : 'idle',
+            job_description: s.job_description  ? 'done' : 'idle',
             company_intel:   s.company_intel     ? 'done' : 'idle',
             match_analysis:  s.match_analysis    ? 'done' : 'idle',
-            contact_strategy:s.contact_strategy  ? 'done' : 'idle',
-            action_plan:     s.action_plan       ? 'done' : 'idle',
+            reachout:        s.reachout          ? 'done' : 'idle',
         });
-        // Default to Action Plan; fall back to last completed step if not ready
-        if (s.action_plan) {
-            setActiveStep('action_plan');
+        // Default to the final current JobLens module; fall back to last completed step if not ready
+        if (s.reachout) {
+            setActiveStep('reachout');
         } else {
             const lastDone = [...STEPS].reverse().find(step => s[SESSION_FIELD[step.key]]);
             if (lastDone) setActiveStep(lastDone.key);

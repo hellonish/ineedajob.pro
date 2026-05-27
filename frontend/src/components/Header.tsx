@@ -21,7 +21,6 @@ export default function Header() {
         { href: '/dashboard',    label: 'Dashboard'     },
         { href: '/jobs',         label: 'Jobs'          },
         { href: '/cover-letters',label: 'Cover Letters' },
-        { href: '/discrepancies',label: 'Discrepancy'   },
     ];
 
     return (

@@ -14,6 +14,7 @@ from datetime import datetime
 
 from ..database import get_db
 from ..auth import get_current_user
+from ..llm import get_llm
 from ..schemas import (
     UserProfileResponse,
     ProfileUploadResponse,
@@ -25,8 +26,8 @@ from ..schemas import (
 )
 from ..models import User, UserProfile, ProfileFile
 
-from engine.profile.parsers import ResumeParser, LinkedInParser, PortfolioParser
-from engine.profile.discrepancy_unifier import create_discrepancy_aware_unified_profile
+from engine.profile import parse_profile_upload
+from engine.profile.unification import create_unified_profile, merge_profile_sources
 
 router = APIRouter(prefix="/api/profile", tags=["Profile"])
 
@@ -37,18 +38,13 @@ ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".txt", ".doc", ".docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
-def _get_profile_parser(file_type: str, file_ext: str):
-    if file_type == "resume":
-        return ResumeParser()
-    if file_type == "linkedin":
-        return LinkedInParser()
-    if file_type == "portfolio":
-        return PortfolioParser()
-    if file_type == "other":
-        if file_ext == ".pdf":
-            return ResumeParser()
-        if file_ext in (".html", ".htm"):
-            return PortfolioParser()
+def _parse_source_label(file_type: str, file_ext: str) -> Optional[str]:
+    if file_type in {"resume", "linkedin", "portfolio"}:
+        return file_type
+    if file_type == "other" and file_ext == ".pdf":
+        return "resume"
+    if file_type == "other" and file_ext in (".html", ".htm"):
+        return "portfolio"
     return None
 
 
@@ -103,11 +99,15 @@ async def upload_file(
         buffer.write(file_content)
 
     parsed_data = None
-    parser = _get_profile_parser(type, file_ext)
-    if parser:
+    source_label = _parse_source_label(type, file_ext)
+    if source_label:
         try:
-            parsed_result = parser.parse(file_content)
-            parsed_data = parsed_result.model_dump() if hasattr(parsed_result, "model_dump") else parsed_result.dict()
+            parsed_data = parse_profile_upload(
+                file_content=file_content,
+                filename=file.filename or f"profile{file_ext}",
+                content_type=file.content_type or "application/octet-stream",
+                source_label=source_label,
+            )
         except Exception as e:
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -303,7 +303,7 @@ async def create_unified(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create Unified Profile from uploaded files using discrepancy-aware merging."""
+    """Create Unified Profile from uploaded files."""
     profile = _get_or_create_profile(db, current_user.id)
 
     all_profile_files = db.query(ProfileFile).filter(
@@ -341,11 +341,7 @@ async def create_unified(
 
     llm = None
     try:
-        from engine.models.llm import LLMClient
-        llm = LLMClient.from_user_settings({
-            "llm_provider": current_user.llm_provider or "grok",
-            "llm_model": current_user.llm_model,
-        })
+        llm = get_llm("profile")
 
         global_ctx = profile.additional_context
         per_file_ctx = {}
@@ -353,21 +349,19 @@ async def create_unified(
             if pf.additional_context:
                 per_file_ctx[pf.filename] = pf.additional_context
 
-        unified, discrepancy = create_discrepancy_aware_unified_profile(
+        unified, _ = merge_profile_sources(
             sources, llm, global_context=global_ctx, per_file_context=per_file_ctx
         )
 
         profile.unified_profile = unified
-        profile.discrepancy_result = discrepancy
 
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Discrepancy-aware unification failed: {e}")
+        logging.getLogger(__name__).warning(f"Profile unification failed: {e}")
 
         if len(sources) == 1:
             unified = list(sources.values())[0]
         else:
-            from engine.profile.unifier import create_unified_profile
             type_sources = {}
             for key, val in sources.items():
                 lower = key.lower()
@@ -383,15 +377,8 @@ async def create_unified(
 
     db.commit()
 
-    if llm is not None:
-        try:
-            from engine.joblens import extract_profile
-            extracted = extract_profile(unified, llm, profile.additional_context)
-            profile.extracted_profile = extracted.model_dump()
-            db.commit()
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Auto-extract profile failed: {e}")
+    profile.extracted_profile = unified
+    db.commit()
 
     db.refresh(profile)
     return profile

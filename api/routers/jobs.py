@@ -1,26 +1,28 @@
-"""
-Jobs Router - CRUD + Tracking + JobLens integration
-"""
+"""Jobs Router - CRUD, tracking, and analysis pipeline."""
 
-import sys
-import os
 import asyncio
+import json
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile, BackgroundTasks
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from engine.joblens.company_intel import CompanyIntelInput, CompanyIntelService
+from engine.joblens.job_description import JobDescriptionBreakdownResult, break_down_job_description
+from engine.joblens.job_match import JobMatchResult, match_profile_to_job
+from engine.joblens.reachout import ReachoutInput, ReachoutService
+from engine.profile.models import UnifiedProfile
+from engine.profile.unification import create_unified_profile, merge_profile_sources
 
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..auth import get_current_user
+from ..llm import get_llm
 from ..schemas import (
-    JobCreate, JobTrackCreate, JobUpdate, JobResponse, JobListResponse, JobStatusEnum,
-    ReEvaluateRequest, ReEvaluateResponse,
+    JobCreate, JobTrackCreate, JobUpdate, JobResponse, JobListResponse, JobStatusEnum, JobLensSessionResponse,
 )
-from ..models import User, Job, ResumeHistory, UserProfile, JobLensSession, JobStatus
+from ..models import User, Job, JobLensSession, JobStatus, UserProfile, ProfileFile
 from ..websocket import manager
 
 logger = logging.getLogger(__name__)
@@ -28,235 +30,364 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 
 
-# ============================================================================
-# Background: run full pipeline
-# ============================================================================
+def _collect_profile_sources(
+    db: Session,
+    profile: UserProfile,
+    user_id: str,
+) -> tuple[dict[str, Any], list[ProfileFile]]:
+    """Collect parsed profile sources from profile files, with legacy fallback."""
 
-async def _run_pipeline_background(job_id: str, session_id: str, user_id: str,
-                                    llm_provider: str, llm_model: Optional[str],
-                                    jd_text: str, company_website: Optional[str]):
-    """Run the 6-step JobLens pipeline in the background with WebSocket events."""
-    from ..database import SessionLocal
-    from engine.joblens import (
-        extract_profile, parse_jd, analyze_company, analyze_match, find_contacts, plan_actions,
-        ExtractedProfile, ParsedJD, CompanyIntel, MatchAnalysis, ContactStrategy,
+    profile_files = (
+        db.query(ProfileFile)
+        .filter(ProfileFile.user_id == user_id, ProfileFile.parsed_data.isnot(None))
+        .all()
     )
-    from engine.models.llm import LLMClient
+    sources: dict[str, Any] = {}
+    type_counters: dict[str, int] = {}
 
-    loop = asyncio.get_event_loop()
+    for profile_file in profile_files:
+        file_type = profile_file.file_type
+        type_counters[file_type] = type_counters.get(file_type, 0) + 1
+        sources[f"{file_type}_{type_counters[file_type]}"] = profile_file.parsed_data
 
-    def emit(step: str, event: str, data: dict = None):
-        asyncio.ensure_future(manager.send_to_user(user_id, {
-            "type": event,
-            "session_id": session_id,
-            "job_id": job_id,
-            "step": step,
-            **(data or {}),
-        }))
+    if sources:
+        return sources, profile_files
 
-    def db_write(fn):
-        """Open a fresh short-lived session, run fn(db), commit, close."""
-        _db = SessionLocal()
+    for key in ("resume", "linkedin", "portfolio"):
+        legacy_val = getattr(profile, f"{key}_data", None)
+        if isinstance(legacy_val, str):
+            try:
+                legacy_val = json.loads(legacy_val)
+            except (json.JSONDecodeError, TypeError):
+                continue
+        if isinstance(legacy_val, dict):
+            sources[f"{key}_1"] = legacy_val
+
+    return sources, profile_files
+
+
+def _fallback_unified_profile(sources: dict[str, Any]) -> dict[str, Any]:
+    if len(sources) == 1:
+        return next(iter(sources.values()))
+
+    type_sources = {}
+    for key, value in sources.items():
+        lower = key.lower()
+        if "resume" in lower:
+            type_sources["resume"] = value
+        elif "linkedin" in lower:
+            type_sources["linkedin"] = value
+        elif "portfolio" in lower:
+            type_sources["portfolio"] = value
+    return create_unified_profile(type_sources) if type_sources else next(iter(sources.values()))
+
+
+def _get_or_create_unified_profile(user_id: str) -> UnifiedProfile:
+    """Load the user's unified profile or create/cache it from parsed profile files."""
+
+    db = SessionLocal()
+    try:
+        profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+        if not profile:
+            profile = UserProfile(user_id=user_id)
+            db.add(profile)
+            db.commit()
+            db.refresh(profile)
+
+        if profile.unified_profile:
+            return UnifiedProfile.model_validate(profile.unified_profile)
+
+        sources, profile_files = _collect_profile_sources(db, profile, user_id)
+        if not sources:
+            raise ValueError("No parsed profile files found. Upload profile files before creating a job.")
+
         try:
-            fn(_db)
-            _db.commit()
-        finally:
-            _db.close()
+            per_file_ctx = {
+                profile_file.filename: profile_file.additional_context
+                for profile_file in profile_files
+                if profile_file.additional_context
+            }
+            unified, _ = merge_profile_sources(
+                sources,
+                get_llm("profile"),
+                global_context=profile.additional_context,
+                per_file_context=per_file_ctx,
+            )
+        except Exception as error:
+            logger.warning("LLM profile unification failed for user %s: %s", user_id, error)
+            unified = _fallback_unified_profile(sources)
 
-    # ── Read profile data, then immediately release the connection ──
-    _db = SessionLocal()
-    try:
-        profile_db = _db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
-        unified_profile = profile_db.unified_profile if profile_db else None
-        additional_context = profile_db.additional_context if profile_db else None
-        cached_extracted_profile = profile_db.extracted_profile if profile_db else None
+        profile.unified_profile = unified
+        profile.extracted_profile = unified
+        db.commit()
+        return UnifiedProfile.model_validate(unified)
     finally:
-        _db.close()
+        db.close()
+
+
+def _gather_company_intel(job_description: JobDescriptionBreakdownResult, company_website: Optional[str]):
+    """Company intel section: derive lookup handles and collect company intelligence."""
+
+    return CompanyIntelService(llm=get_llm("company_intel")).collect(
+        CompanyIntelInput(
+            company_name=job_description.breakdown.metadata.company_name,
+            website=company_website,
+        )
+    )
+
+
+def _calculate_match(profile: Optional[UnifiedProfile], job_description: JobDescriptionBreakdownResult):
+    """Match section: compare unified profile against the processed job."""
+
+    if not profile:
+        raise ValueError("No unified profile available.")
+
+    return match_profile_to_job(
+        profile=profile,
+        job_description=job_description,
+        llm=get_llm("job_match"),
+    )
+
+
+def _discover_reachout(
+    profile: UnifiedProfile,
+    job_description: JobDescriptionBreakdownResult,
+    company_website: Optional[str],
+):
+    """Reachout section: derive roles/schools and discover candidate contacts."""
+
+    breakdown = job_description.breakdown
+    roles = [
+        breakdown.metadata.job_title,
+        breakdown.role_classification.role_family,
+        breakdown.role_classification.primary_track,
+    ]
+    roles.extend(skill.name for skill in breakdown.primary_skills[:3])
+    target_roles = [role for role in roles if role]
+    schools = [item.institution for item in profile.education if item.institution]
+
+    return ReachoutService(llm=get_llm("reachout")).discover(
+        ReachoutInput(
+            company_name=breakdown.metadata.company_name,
+            company_website=company_website,
+            target_roles=target_roles,
+            location=breakdown.metadata.location,
+            schools=schools,
+        )
+    )
+
+
+def _job_posting_summary(job_description: JobDescriptionBreakdownResult) -> dict:
+    """Build the durable Job.job_posting from the parsed job description."""
+
+    breakdown = job_description.breakdown
+    metadata = breakdown.metadata
+    return {
+        "job_title": metadata.job_title or "Untitled role",
+        "company_name": metadata.company_name or "Unknown company",
+        "location": metadata.location,
+        "work_mode": metadata.work_mode.value,
+        "employment_type": metadata.employment_type.value,
+        "seniority_level": metadata.seniority_level.value,
+        "years_of_experience_min": metadata.years_of_experience_min,
+        "years_of_experience_max": metadata.years_of_experience_max,
+        "role_family": breakdown.role_classification.role_family,
+        "primary_track": breakdown.role_classification.primary_track,
+        "primary_skills": [skill.name for skill in breakdown.primary_skills],
+        "secondary_skills": [skill.name for skill in breakdown.secondary_skills],
+        "responsibilities": [
+            " ".join(part for part in (item.action, item.object, item.context) if part)
+            for item in breakdown.responsibilities
+        ],
+        "constraints": [item.text for item in breakdown.constraints],
+        "keywords": breakdown.keywords,
+    }
+
+
+def _analysis_summary(match: JobMatchResult) -> dict:
+    """Build the durable Job.analysis_result from match output."""
+
+    return {
+        "final_score": match.summary.total_score,
+        "match_band": match.summary.match_band.value,
+        "headline": match.summary.headline,
+        "strongest_matches": match.summary.strongest_matches,
+        "biggest_gaps": match.summary.biggest_gaps,
+    }
+
+
+def _emit(user_id: str, session_id: str, job_id: Optional[str], step: str, event: str, data: Optional[dict] = None) -> None:
+    asyncio.create_task(
+        manager.send_to_user(
+            user_id,
+            {
+                "type": event,
+                "session_id": session_id,
+                "job_id": job_id,
+                "step": step,
+                **(data or {}),
+            },
+        )
+    )
+
+
+def _db_write(fn) -> None:
+    db = SessionLocal()
+    try:
+        fn(db)
+        db.commit()
+    finally:
+        db.close()
+
+
+async def run_job_analysis_background(
+    job_id: str,
+    session_id: str,
+    user_id: str,
+    jd_text: str,
+    company_website: Optional[str],
+) -> None:
+    """Run the job analysis flow from profile + parsed job description."""
+
+    profile_snapshot = None
+    job_description = None
+    company_intel = None
+    match_analysis = None
+    reachout = None
 
     try:
-        llm = LLMClient.from_user_settings({"llm_provider": llm_provider, "llm_model": llm_model})
+        _emit(user_id, session_id, job_id, "profile", "joblens_step_started")
+        _emit(user_id, session_id, job_id, "job_description", "joblens_step_started")
 
-        # ── STEP 1 + 2 in parallel ──
-        emit("profile_extract", "joblens_step_started")
-        emit("jd_parse", "joblens_step_started")
-
-        extracted_profile_result = None
-        parsed_jd_result = None
-
-        async def run_step1():
-            nonlocal extracted_profile_result
+        async def run_profile() -> None:
+            nonlocal profile_snapshot
             try:
-                if cached_extracted_profile:
-                    from engine.joblens import ExtractedProfile
-                    extracted_profile_result = ExtractedProfile(**cached_extracted_profile)
-                    emit("profile_extract", "joblens_step_complete", {"data": cached_extracted_profile, "cached": True})
-                    return
-                result = await loop.run_in_executor(
-                    None, lambda: extract_profile(unified_profile, llm, additional_context)
-                    if unified_profile else None
+                profile_snapshot = await asyncio.to_thread(lambda: _get_or_create_unified_profile(user_id))
+                _emit(
+                    user_id,
+                    session_id,
+                    job_id,
+                    "profile",
+                    "joblens_step_complete",
+                    {"data": profile_snapshot.model_dump(mode="json")},
                 )
-                extracted_profile_result = result
-                if result:
-                    result_data = result.model_dump()
-                    def _cache(db): db.query(UserProfile).filter(UserProfile.user_id == user_id).update({"extracted_profile": result_data})
-                    db_write(_cache)
-                    emit("profile_extract", "joblens_step_complete", {"data": result_data})
-                else:
-                    emit("profile_extract", "joblens_step_failed", {"error": "No unified profile"})
-            except Exception as e:
-                emit("profile_extract", "joblens_step_failed", {"error": str(e)})
+            except Exception as error:
+                _emit(user_id, session_id, job_id, "profile", "joblens_step_failed", {"error": str(error)})
 
-        async def run_step2():
-            nonlocal parsed_jd_result
+        async def run_job_description() -> None:
+            nonlocal job_description
             try:
-                result = await loop.run_in_executor(None, lambda: parse_jd(jd_text, llm))
-                parsed_jd_result = result
-                emit("jd_parse", "joblens_step_complete", {"data": result.model_dump()})
-            except Exception as e:
-                emit("jd_parse", "joblens_step_failed", {"error": str(e)})
+                job_description = await asyncio.to_thread(
+                    lambda: break_down_job_description(
+                        job_text=jd_text,
+                        llm=get_llm("job_description"),
+                        source_id=job_id,
+                    )
+                )
+                _emit(
+                    user_id,
+                    session_id,
+                    job_id,
+                    "job_description",
+                    "joblens_step_complete",
+                    {"data": job_description.model_dump(mode="json")},
+                )
+            except Exception as error:
+                _emit(user_id, session_id, job_id, "job_description", "joblens_step_failed", {"error": str(error)})
 
-        await asyncio.gather(run_step1(), run_step2())
+        await asyncio.gather(run_profile(), run_job_description())
 
-        # Save wave 1 results
-        def _save_wave1(db):
+        def save_first_wave(db: Session) -> None:
             session = db.query(JobLensSession).filter(JobLensSession.id == session_id).first()
             job = db.query(Job).filter(Job.id == job_id).first()
-            if extracted_profile_result:
-                session.extracted_profile = extracted_profile_result.model_dump()
+            if not session:
+                return
+            if profile_snapshot:
+                session.profile_snapshot = profile_snapshot.model_dump(mode="json")
                 session.current_step = max(session.current_step, 1)
-            if parsed_jd_result:
-                session.parsed_jd = parsed_jd_result.model_dump()
+            if job_description:
+                session.job_description = job_description.model_dump(mode="json")
                 session.raw_jd_text = jd_text
                 session.current_step = max(session.current_step, 2)
                 if job:
-                    job.job_posting = {
-                        "job_title": parsed_jd_result.role_title,
-                        "company_name": parsed_jd_result.company_name,
-                        "location": parsed_jd_result.location,
-                        "remote_policy": parsed_jd_result.remote_policy,
-                        "level": parsed_jd_result.level,
-                        "salary_range": parsed_jd_result.salary_range,
-                        "required_qualifications": parsed_jd_result.required_skills,
-                        "tech_stack": parsed_jd_result.tech_stack,
-                    }
-        db_write(_save_wave1)
+                    job.job_posting = _job_posting_summary(job_description)
 
-        if not parsed_jd_result:
-            logger.error(f"Pipeline aborted: JD parse failed for job {job_id}")
+        _db_write(save_first_wave)
+
+        if not job_description:
+            logger.error("Job analysis aborted: job description failed for job %s", job_id)
+            def mark_job_tracked(db: Session) -> None:
+                job = db.query(Job).filter(Job.id == job_id).first()
+                if job and job.status == JobStatus.ANALYZING:
+                    job.status = JobStatus.TRACKED
+
+            _db_write(mark_job_tracked)
             return
 
-        # ── STEP 3 + 4 + 5 in parallel ──
-        company_intel_result = None
-        match_result = None
-        contact_result = None
-        company_name = parsed_jd_result.company_name
-
-        emit("company_intel", "joblens_step_started")
-        emit("match_analysis", "joblens_step_started")
-        emit("contact_strategy", "joblens_step_started")
-
-        async def run_step3():
-            nonlocal company_intel_result
+        async def run_parallel_section(step: str, fn):
+            _emit(user_id, session_id, job_id, step, "joblens_step_started")
             try:
-                result = await loop.run_in_executor(
-                    None, lambda: analyze_company(company_name=company_name, llm=llm, company_website=company_website, jd_context=jd_text)
+                result = await asyncio.to_thread(fn)
+                _emit(
+                    user_id,
+                    session_id,
+                    job_id,
+                    step,
+                    "joblens_step_complete",
+                    {"data": result.model_dump(mode="json")},
                 )
-                company_intel_result = result
-                emit("company_intel", "joblens_step_complete", {"data": result.model_dump()})
-            except Exception as e:
-                emit("company_intel", "joblens_step_failed", {"error": str(e)})
+                return result
+            except Exception as error:
+                _emit(user_id, session_id, job_id, step, "joblens_step_failed", {"error": str(error)})
+                return None
 
-        async def run_step4():
-            nonlocal match_result
-            try:
-                if not extracted_profile_result:
-                    emit("match_analysis", "joblens_step_failed", {"error": "No profile"})
-                    return
-                result = await loop.run_in_executor(
-                    None, lambda: analyze_match(profile=extracted_profile_result, parsed_jd=parsed_jd_result, llm=llm)
-                )
-                match_result = result
-                emit("match_analysis", "joblens_step_complete", {"data": result.model_dump()})
-            except Exception as e:
-                emit("match_analysis", "joblens_step_failed", {"error": str(e)})
+        # Three independent post-processing sections. One /api/jobs hit triggers this fan-out.
+        company_intel, match_analysis, reachout = await asyncio.gather(
+            run_parallel_section(
+                "company_intel",
+                lambda: _gather_company_intel(job_description, company_website),
+            ),
+            run_parallel_section(
+                "match_analysis",
+                lambda: _calculate_match(profile_snapshot, job_description),
+            ),
+            run_parallel_section(
+                "reachout",
+                lambda: _discover_reachout(profile_snapshot or UnifiedProfile(), job_description, company_website),
+            ),
+        )
 
-        async def run_step5():
-            nonlocal contact_result
-            try:
-                profile_summary = None
-                if extracted_profile_result:
-                    ep = extracted_profile_result
-                    profile_summary = f"{ep.current_title} with {ep.years_of_experience} years experience. {ep.professional_summary}"
-                result = await loop.run_in_executor(
-                    None, lambda: find_contacts(parsed_jd=parsed_jd_result, llm=llm, profile_summary=profile_summary)
-                )
-                contact_result = result
-                emit("contact_strategy", "joblens_step_complete", {"data": result.model_dump()})
-            except Exception as e:
-                emit("contact_strategy", "joblens_step_failed", {"error": str(e)})
-
-        await asyncio.gather(run_step3(), run_step4(), run_step5())
-
-        # Save wave 2 results
-        def _save_wave2(db):
+        def save_second_wave(db: Session) -> None:
             session = db.query(JobLensSession).filter(JobLensSession.id == session_id).first()
             job = db.query(Job).filter(Job.id == job_id).first()
-            if company_intel_result:
-                session.company_intel = company_intel_result.model_dump()
+            if not session:
+                return
+            if company_intel:
+                session.company_intel = company_intel.model_dump(mode="json")
                 session.current_step = max(session.current_step, 3)
-            if match_result:
-                session.match_analysis = match_result.model_dump()
+            if match_analysis:
+                session.match_analysis = match_analysis.model_dump(mode="json")
                 session.current_step = max(session.current_step, 4)
                 if job:
-                    job.analysis_result = {"final_score": match_result.overall_score}
-            if contact_result:
-                session.contact_strategy = contact_result.model_dump()
+                    job.analysis_result = _analysis_summary(match_analysis)
+            if reachout:
+                session.reachout = reachout.model_dump(mode="json")
                 session.current_step = max(session.current_step, 5)
-        db_write(_save_wave2)
+            if job and job.status == JobStatus.ANALYZING:
+                job.status = JobStatus.TRACKED
 
-        # ── STEP 6 ──
-        if extracted_profile_result and match_result:
-            emit("action_plan", "joblens_step_started")
-            try:
-                action_result = await loop.run_in_executor(
-                    None, lambda: plan_actions(
-                        profile=extracted_profile_result,
-                        parsed_jd=parsed_jd_result,
-                        match_analysis=match_result,
-                        llm=llm,
-                        company_intel=company_intel_result,
-                        contact_strategy=contact_result,
-                    )
-                )
-                action_data = action_result.model_dump()
-                def _save_step6(db):
-                    session = db.query(JobLensSession).filter(JobLensSession.id == session_id).first()
-                    session.action_plan = action_data
-                    session.current_step = 6
-                db_write(_save_step6)
-                emit("action_plan", "joblens_step_complete", {"data": action_data})
-            except Exception as e:
-                emit("action_plan", "joblens_step_failed", {"error": str(e)})
+        _db_write(save_second_wave)
+        _emit(user_id, session_id, job_id, "pipeline", "joblens_pipeline_complete")
 
-        # Mark job complete
-        def _finalize(db):
+    except Exception as error:
+        logger.exception("Job analysis pipeline error for job %s: %s", job_id, error)
+        def mark_job_tracked(db: Session) -> None:
             job = db.query(Job).filter(Job.id == job_id).first()
             if job and job.status == JobStatus.ANALYZING:
                 job.status = JobStatus.TRACKED
-        db_write(_finalize)
 
-        emit("pipeline", "joblens_pipeline_complete")
-
-    except Exception as e:
-        logger.exception(f"Pipeline error for job {job_id}: {e}")
-        await manager.send_to_user(user_id, {
-            "type": "joblens_pipeline_failed",
-            "session_id": session_id,
-            "job_id": job_id,
-            "error": str(e),
-        })
-    finally:
-        db.close()
+        _db_write(mark_job_tracked)
+        _emit(user_id, session_id, job_id, "pipeline", "joblens_pipeline_failed", {"error": str(error)})
 
 
 # ============================================================================
@@ -270,7 +401,7 @@ async def create_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new job and kick off the JobLens pipeline."""
+    """Create a new job and kick off the analysis pipeline."""
     # Create placeholder job
     job = Job(
         user_id=current_user.id,
@@ -285,7 +416,7 @@ async def create_job(
     db.add(job)
     db.flush()  # get job.id
 
-    # Create JobLens session
+    # Create internal analysis session
     session = JobLensSession(
         user_id=current_user.id,
         job_id=job.id,
@@ -301,9 +432,8 @@ async def create_job(
 
     # Kick off pipeline in background
     background_tasks.add_task(
-        _run_pipeline_background,
+        run_job_analysis_background,
         job.id, session.id, current_user.id,
-        current_user.llm_provider or "grok", current_user.llm_model,
         job_data.jd_text, job_data.company_website,
     )
 
@@ -341,6 +471,25 @@ async def list_jobs(
         result.append(JobListResponse(**job_dict))
 
     return result
+
+
+@router.get("/{job_id}/analysis", response_model=JobLensSessionResponse)
+async def get_job_analysis(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get the internal analysis session linked to a job."""
+
+    session = db.query(JobLensSession).filter(
+        JobLensSession.job_id == str(job_id),
+        JobLensSession.user_id == current_user.id,
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Job analysis not found")
+
+    return session
 
 
 @router.get("/{job_id}", response_model=JobResponse)
@@ -421,61 +570,6 @@ async def delete_job(
     db.delete(job)
     db.commit()
     return {"message": "Job deleted"}
-
-
-@router.post("/{job_id}/reevaluate", response_model=ReEvaluateResponse)
-async def reevaluate_job(
-    job_id: UUID,
-    request: ReEvaluateRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Re-evaluate job with modified resume."""
-    from engine.analysis.reevaluate import reevaluate_resume
-    from datetime import date
-
-    job = db.query(Job).filter(
-        Job.id == str(job_id),
-        Job.user_id == current_user.id
-    ).first()
-
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    previous_score = job.analysis_result.get("final_score") if job.analysis_result else None
-
-    result = reevaluate_resume(
-        job_posting=job.job_posting,
-        modified_resume=request.modified_resume,
-        previous_score=previous_score,
-        today_date=date.today().isoformat()
-    )
-
-    latest = db.query(ResumeHistory).filter(
-        ResumeHistory.job_id == str(job_id)
-    ).order_by(ResumeHistory.version.desc()).first()
-    next_version = (latest.version + 1) if latest else 1
-
-    history = ResumeHistory(
-        job_id=job_id,
-        version=next_version,
-        resume_data=request.modified_resume,
-        score=result.final_score
-    )
-    db.add(history)
-
-    job.analysis_result = {
-        **(job.analysis_result or {}),
-        "final_score": result.final_score,
-        "qualification_match_score": result.qualification_match_score,
-        "skill_match_score": result.skill_match_score,
-        "formatting_score": result.formatting_score,
-        "keyword_match_score": result.keyword_match_score
-    }
-
-    db.commit()
-
-    return result
 
 
 @router.post("/track", response_model=JobResponse)

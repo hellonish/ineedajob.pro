@@ -1,15 +1,9 @@
-"""
-Cover Letters Router - CRUD + JD Analysis
-"""
+"""Cover Letters Router - CRUD + JD Analysis."""
 
-import sys
-import os
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from ..database import get_db
 from ..auth import get_current_user
@@ -18,26 +12,32 @@ from ..schemas import (
     JDToneAnalysisResponse,
 )
 from ..models import User, Job, CoverLetter, UserProfile
-from engine.models import LLMClient
+from ..llm import get_llm
+from engine.joblens.company_intel import CompanyIntelInput, CompanyIntelService
+from engine.joblens.job_description import break_down_job_description
 
 router = APIRouter(prefix="/api/cover-letters", tags=["Cover Letters"])
 
 
-def _get_user_llm(user: User) -> LLMClient:
-    return LLMClient.from_user_settings({
-        "llm_provider": user.llm_provider or "grok",
-        "llm_model": user.llm_model,
-    })
-
-
-def _parse_jd_text(jd_text: str, company_name: str = None) -> dict:
+def _parse_jd_text(jd_text: str, llm, company_name: str = None) -> dict:
     """Parse raw JD text into a structured job_posting dict."""
-    from engine.job.parser import JobParser
-    parsed = JobParser().parse(jd_text)
-    job_posting = parsed.model_dump()
-    if company_name:
-        job_posting["company_name"] = company_name
-    return job_posting
+
+    parsed = break_down_job_description(jd_text, llm=llm)
+    breakdown = parsed.breakdown
+    metadata = breakdown.metadata
+    return {
+        "job_title": metadata.job_title or "",
+        "company_name": company_name or metadata.company_name or "",
+        "location": metadata.location,
+        "job_description": jd_text,
+        "required_qualifications": [item.text for item in breakdown.qualifications if item.is_must_have],
+        "technical_skills": [item.name for item in breakdown.primary_skills],
+        "soft_skills": [item.text for item in breakdown.qualifications if item.category == "soft_skill"],
+        "job_keywords": breakdown.keywords,
+        "work_mode": metadata.work_mode.value,
+        "employment_type": metadata.employment_type.value,
+        "seniority_level": metadata.seniority_level.value,
+    }
 
 
 @router.post("/analyze-jd", response_model=JDToneAnalysisResponse)
@@ -47,8 +47,9 @@ async def analyze_jd(
     db: Session = Depends(get_db),
 ):
     """Analyze a job description and recommend the best cover letter mode."""
-    from engine.cover_letter import analyze_jd_tone
+    from engine.cover_letter import CoverLetterService
 
+    llm = get_llm("cover_letter_tone")
     job_posting = {}
     if data.job_id:
         job = db.query(Job).filter(
@@ -58,13 +59,12 @@ async def analyze_jd(
         if job:
             job_posting = job.job_posting
     elif data.jd_text:
-        job_posting = _parse_jd_text(data.jd_text, data.company_name)
+        job_posting = _parse_jd_text(data.jd_text, llm, data.company_name)
 
     if not job_posting:
         raise HTTPException(status_code=400, detail="Job posting required for JD analysis")
 
-    llm = _get_user_llm(current_user)
-    result = analyze_jd_tone(job_posting, llm)
+    result = CoverLetterService(llm)._analyze_jd_tone(job_posting)
     return JDToneAnalysisResponse(
         recommended_mode=result.recommended_mode,
         confidence=result.confidence,
@@ -85,6 +85,7 @@ async def create_cover_letter(
     """Generate a cover letter."""
     from engine.cover_letter import generate_cover_letter
 
+    llm = get_llm("cover_letter")
     job = None
     job_posting = {}
 
@@ -96,7 +97,7 @@ async def create_cover_letter(
         if job:
             job_posting = job.job_posting
     elif data.jd_text:
-        job_posting = _parse_jd_text(data.jd_text, data.company_name)
+        job_posting = _parse_jd_text(data.jd_text, llm, data.company_name)
 
     if not job_posting:
         raise HTTPException(
@@ -109,16 +110,19 @@ async def create_cover_letter(
     ).first()
     unified_profile = profile.unified_profile if profile else {}
 
-    company_news = None
+    company_intel = None
     if data.include_news and job_posting.get("company_name"):
         try:
-            from engine.news import fetch_company_news
-            news_result = fetch_company_news(job_posting["company_name"], 5)
-            company_news = [a.model_dump() for a in news_result.articles]
+            intel = CompanyIntelService(llm=llm).collect(
+                CompanyIntelInput(
+                    company_name=job_posting["company_name"],
+                    website=job.company_website if job else None,
+                    max_pages=4,
+                )
+            )
+            company_intel = intel.model_dump_json()
         except Exception:
-            company_news = None
-
-    llm = _get_user_llm(current_user)
+            company_intel = None
 
     result = generate_cover_letter(
         job_posting=job_posting,
@@ -126,7 +130,7 @@ async def create_cover_letter(
         llm=llm,
         mode=data.mode.value,
         custom_prompt=data.custom_prompt,
-        company_news=company_news,
+        company_intel=company_intel,
     )
 
     result_dict = result.model_dump()

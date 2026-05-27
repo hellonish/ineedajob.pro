@@ -62,6 +62,7 @@ pydantic_core==2.41.5
 Pygments==2.19.2
 PyMuPDF==1.26.7
 python-dateutil==2.9.0.post0
+python-docx==1.1.2
 python-dotenv==1.2.1
 python-jobspy==1.1.82
 python-jose==3.5.0

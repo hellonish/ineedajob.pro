@@ -3,19 +3,6 @@ import { useStore } from '@/utils/store';
 
 const WS_URL = 'ws://localhost:8000/ws';
 
-// Global event emitter for discrepancy completion
-type DiscrepancyHandler = (data: Record<string, unknown>) => void;
-const discrepancyListeners: Set<DiscrepancyHandler> = new Set();
-
-export function subscribeToDiscrepancy(handler: DiscrepancyHandler): () => void {
-    discrepancyListeners.add(handler);
-    return () => { discrepancyListeners.delete(handler); };
-}
-
-function emitDiscrepancy(data: Record<string, unknown>) {
-    discrepancyListeners.forEach(fn => fn(data));
-}
-
 // Global event emitter for JobLens step updates
 type JobLensEventType =
     | 'joblens_step_started'
@@ -58,11 +45,6 @@ export function useGlobalWebSocket() {
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-
-                // Discrepancy events
-                if (data.type === 'discrepancy_complete' || data.type === 'discrepancy_failed') {
-                    emitDiscrepancy(data);
-                }
 
                 // JobLens step events — route to per-session listeners
                 const joblensTypes: JobLensEventType[] = [

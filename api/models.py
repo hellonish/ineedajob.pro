@@ -32,13 +32,10 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     name = Column(String, nullable=False)
     profile_picture = Column(String, nullable=True)
-    llm_provider = Column(String, nullable=True, default="grok")
-    llm_model = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     jobs = relationship("Job", back_populates="user", cascade="all, delete-orphan")
     cover_letters = relationship("CoverLetter", back_populates="user", cascade="all, delete-orphan")
-    discrepancies = relationship("Discrepancy", back_populates="user", cascade="all, delete-orphan")
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     joblens_sessions = relationship("JobLensSession", back_populates="user", cascade="all, delete-orphan")
     profile_files = relationship("ProfileFile", back_populates="user", cascade="all, delete-orphan")
@@ -107,21 +104,6 @@ class CoverLetter(Base):
     job = relationship("Job", back_populates="cover_letters")
 
 
-class Discrepancy(Base):
-    __tablename__ = "discrepancies"
-    
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    
-    unified_profile = Column(JSON, nullable=False)
-    result = Column(JSON, nullable=True)
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationship
-    user = relationship("User", back_populates="discrepancies")
-
-
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 
@@ -139,7 +121,6 @@ class UserProfile(Base):
     portfolio_data = Column(JSON, nullable=True)
 
     unified_profile = Column(JSON, nullable=True)
-    discrepancy_result = Column(JSON, nullable=True)
 
     extracted_profile = Column(JSON, nullable=True)
     additional_context = Column(Text, nullable=True)
@@ -176,13 +157,12 @@ class JobLensSession(Base):
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     job_id = Column(String(36), ForeignKey("jobs.id"), nullable=True)
 
-    # Step results (JSON)
-    extracted_profile = Column(JSON, nullable=True)
-    parsed_jd = Column(JSON, nullable=True)
+    # JobLens module outputs (JSON)
+    profile_snapshot = Column(JSON, nullable=True)
+    job_description = Column(JSON, nullable=True)
     company_intel = Column(JSON, nullable=True)
     match_analysis = Column(JSON, nullable=True)
-    contact_strategy = Column(JSON, nullable=True)
-    action_plan = Column(JSON, nullable=True)
+    reachout = Column(JSON, nullable=True)
 
     # Raw inputs for re-running
     raw_jd_text = Column(Text, nullable=True)
@@ -197,4 +177,3 @@ class JobLensSession(Base):
     # Relationships
     user = relationship("User", back_populates="joblens_sessions")
     job = relationship("Job")
-

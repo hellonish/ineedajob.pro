@@ -5,7 +5,7 @@ Pydantic Schemas for API
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from uuid import UUID
 
 
@@ -38,8 +38,6 @@ class UserBase(BaseModel):
 
 class UserResponse(UserBase):
     id: UUID
-    llm_provider: Optional[str] = None
-    llm_model: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -49,8 +47,6 @@ class UserResponse(UserBase):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     profile_picture: Optional[str] = None
-    llm_provider: Optional[str] = None
-    llm_model: Optional[str] = None
 
 
 # Auth Schemas
@@ -111,21 +107,6 @@ class JobListResponse(BaseModel):
         from_attributes = True
 
 
-# Re-evaluation Schemas
-class ReEvaluateRequest(BaseModel):
-    modified_resume: Dict[str, Any]
-
-
-class ReEvaluateResponse(BaseModel):
-    qualification_match_score: float
-    skill_match_score: float
-    formatting_score: int
-    keyword_match_score: float
-    final_score: float
-    score_change: float
-    improved: bool
-
-
 # Cover Letter Schemas
 class CoverLetterCreate(BaseModel):
     job_id: Optional[UUID] = None
@@ -148,21 +129,6 @@ class CoverLetterResponse(BaseModel):
     content: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
-# Discrepancy Schemas
-class DiscrepancyCreate(BaseModel):
-    unified_profile: Dict[str, Any]
-
-
-class DiscrepancyResponse(BaseModel):
-    id: UUID
-    unified_profile: Dict[str, Any]
-    result: Optional[Dict[str, Any]] = None
-    created_at: datetime
     
     class Config:
         from_attributes = True
@@ -199,7 +165,6 @@ class UserProfileResponse(BaseModel):
 
     # Final Profile
     unified_profile: Optional[Dict[str, Any]] = None
-    discrepancy_result: Optional[Dict[str, Any]] = None
 
     # JobLens
     extracted_profile: Optional[Dict[str, Any]] = None
@@ -260,31 +225,18 @@ class JDToneAnalysisResponse(BaseModel):
     reasoning: str
 
 
-class ProviderModelInfo(BaseModel):
-    default_model: str
-    models: List[str]
-
-
-class AvailableProvidersResponse(BaseModel):
-    providers: Dict[str, ProviderModelInfo]
-
-
 # ============================================================================
 # JobLens Schemas
 # ============================================================================
 
-class JobLensSessionCreate(BaseModel):
-    job_id: Optional[UUID] = None
-
 class JobLensSessionResponse(BaseModel):
     id: UUID
     job_id: Optional[UUID] = None
-    extracted_profile: Optional[Dict[str, Any]] = None
-    parsed_jd: Optional[Dict[str, Any]] = None
+    profile_snapshot: Optional[Dict[str, Any]] = None
+    job_description: Optional[Dict[str, Any]] = None
     company_intel: Optional[Dict[str, Any]] = None
     match_analysis: Optional[Dict[str, Any]] = None
-    contact_strategy: Optional[Dict[str, Any]] = None
-    action_plan: Optional[Dict[str, Any]] = None
+    reachout: Optional[Dict[str, Any]] = None
     raw_jd_text: Optional[str] = None
     company_website: Optional[str] = None
     current_step: int = 0
@@ -293,31 +245,6 @@ class JobLensSessionResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-class ExtractProfileRequest(BaseModel):
-    portfolio_notes: Optional[str] = None
-
-class ParseJDRequest(BaseModel):
-    jd_text: str
-    job_id: Optional[UUID] = None
-
-class CompanyIntelRequest(BaseModel):
-    company_name: str
-    company_website: Optional[str] = None
-    additional_notes: Optional[str] = None
-
-class MatchAnalysisRequest(BaseModel):
-    pass  # No extra input needed, uses session data
-
-class ContactStrategyRequest(BaseModel):
-    pass  # No extra input needed, uses session data
-
-class ActionPlanRequest(BaseModel):
-    pass  # No extra input needed, uses session data
-
-class RunPipelineRequest(BaseModel):
-    """Trigger the full 6-step JobLens pipeline on an existing session."""
-    pass  # Session already has jd_text and company_website stored
 
 class AdditionalContextUpdate(BaseModel):
     additional_context: str

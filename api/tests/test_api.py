@@ -5,7 +5,8 @@ Run with: pytest api/tests/ -v
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
+from fastapi.responses import RedirectResponse
 import sys
 import os
 
@@ -87,7 +88,12 @@ class TestAuth:
     
     def test_google_login_redirect(self, client):
         """Test Google OAuth redirect."""
-        response = client.get("/api/auth/google", follow_redirects=False)
+        redirect = RedirectResponse("https://accounts.google.com/o/oauth2/v2/auth", status_code=302)
+        with patch(
+            "api.routers.auth.oauth.google.authorize_redirect",
+            new=AsyncMock(return_value=redirect),
+        ):
+            response = client.get("/api/auth/google", follow_redirects=False)
         # Should redirect to Google
         assert response.status_code in [302, 307]
     
@@ -144,26 +150,6 @@ class TestCoverLetters:
         """Test creating cover letter without auth."""
         response = client.post("/api/cover-letters", json={
             "mode": "professional"
-        })
-        assert response.status_code == 403
-
-
-# ============================================================
-# Discrepancies Tests (Auth Required - Mocked)
-# ============================================================
-
-class TestDiscrepancies:
-    """Test discrepancy endpoints."""
-    
-    def test_list_discrepancies_unauthorized(self, client):
-        """Test listing discrepancies without auth."""
-        response = client.get("/api/discrepancies")
-        assert response.status_code == 403
-    
-    def test_create_discrepancy_unauthorized(self, client):
-        """Test creating discrepancy without auth."""
-        response = client.post("/api/discrepancies", json={
-            "unified_profile": {}
         })
         assert response.status_code == 403
 

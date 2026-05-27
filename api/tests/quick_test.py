@@ -9,7 +9,7 @@ import sys
 BASE_URL = "http://127.0.0.1:8000"
 
 
-def test_endpoint(name: str, method: str, path: str, expected_status: list = [200], **kwargs):
+def check_endpoint(name: str, method: str, path: str, expected_status: list = [200], **kwargs):
     """Test a single endpoint."""
     try:
         with httpx.Client(timeout=30.0) as client:
@@ -46,31 +46,27 @@ def run_tests():
     
     # Health & Root
     print("\n📍 Health & Root:")
-    results.append(test_endpoint("Health Check", "GET", "/health"))
-    results.append(test_endpoint("Root", "GET", "/"))
+    results.append(check_endpoint("Health Check", "GET", "/health"))
+    results.append(check_endpoint("Root", "GET", "/"))
     
     # News (No Auth)
     print("\n📰 News (Public):")
-    results.append(test_endpoint("Get News", "GET", "/api/news/Apple"))
+    results.append(check_endpoint("Get News", "GET", "/api/news/Apple"))
     
     # Auth
     print("\n🔐 Auth:")
-    results.append(test_endpoint("Google Redirect", "GET", "/api/auth/google", [302, 307]))
-    results.append(test_endpoint("Logout", "POST", "/api/auth/logout"))
-    results.append(test_endpoint("Me (No Auth)", "GET", "/api/auth/me", [403]))
+    results.append(check_endpoint("Google Redirect", "GET", "/api/auth/google", [302, 307]))
+    results.append(check_endpoint("Logout", "POST", "/api/auth/logout"))
+    results.append(check_endpoint("Me (No Auth)", "GET", "/api/auth/me", [403]))
     
     # Jobs (Auth Required)
     print("\n📋 Jobs (Auth Required):")
-    results.append(test_endpoint("List Jobs (No Auth)", "GET", "/api/jobs", [403]))
-    results.append(test_endpoint("Create Job (No Auth)", "POST", "/api/jobs", [403, 422], json={}))
+    results.append(check_endpoint("List Jobs (No Auth)", "GET", "/api/jobs", [403]))
+    results.append(check_endpoint("Create Job (No Auth)", "POST", "/api/jobs", [403, 422], json={}))
     
     # Cover Letters (Auth Required)
     print("\n📝 Cover Letters (Auth Required):")
-    results.append(test_endpoint("List Cover Letters (No Auth)", "GET", "/api/cover-letters", [403]))
-    
-    # Discrepancies (Auth Required)
-    print("\n⚠️ Discrepancies (Auth Required):")
-    results.append(test_endpoint("List Discrepancies (No Auth)", "GET", "/api/discrepancies", [403]))
+    results.append(check_endpoint("List Cover Letters (No Auth)", "GET", "/api/cover-letters", [403]))
     
     # Summary
     passed = sum(results)

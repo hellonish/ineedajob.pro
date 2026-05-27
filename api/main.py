@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from .routers import auth, jobs, cover_letters, discrepancies, news, ws, profile, joblens
+from .routers import auth, jobs, cover_letters, news, ws, profile
 from .database import engine, Base, ensure_sqlite_schema
 from . import models  # Import models to register them
 
@@ -43,11 +43,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(cover_letters.router)
-app.include_router(discrepancies.router)
 app.include_router(news.router)
 app.include_router(ws.router)
 app.include_router(profile.router)
-app.include_router(joblens.router)
 
 
 # Health check

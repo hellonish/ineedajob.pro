@@ -1,0 +1,174 @@
+"""Company-intel orchestration service."""
+
+from datetime import datetime, timezone
+from typing import Any, List, Sequence
+
+import requests
+import trafilatura
+from bs4 import BeautifulSoup
+
+from engine.xai_client import XAIStructuredClient
+from engine.utils import dedupe_warning_strings
+
+from .helpers import (
+    classify_url,
+    common_path_pages,
+    dedupe_pages,
+    guess_company_domains,
+    normalize_website,
+    page_headings,
+    page_links,
+    page_title,
+    pages_from_homepage,
+    soup_text,
+    useful_pages,
+)
+from .models import (
+    CompanyIntelInput,
+    CompanyIntelLLMResponse,
+    CompanyIntelResult,
+    DiscoveredCompanyPage,
+    DiscoveryMethod,
+    FetchedCompanyPage,
+    PageType,
+)
+from .prompts import build_company_intel_messages
+
+
+class CompanyIntelService:
+    """Discover, fetch, and extract company intelligence."""
+
+    def __init__(self, llm: Any = None, timeout: int = 15):
+        """Initialize service dependencies."""
+
+        self.llm = llm
+        self.timeout = timeout
+
+    def collect(self, company_input: CompanyIntelInput) -> CompanyIntelResult:
+        """Collect company intelligence from name or website."""
+
+        pages = self.fetch_pages(company_input)
+        return self._extract(company_input, pages)
+
+    def fetch_pages(self, company_input: CompanyIntelInput) -> List[FetchedCompanyPage]:
+        """Discover and fetch candidate pages."""
+
+        discovered = self._discover_pages(company_input)
+        if not discovered:
+            return []
+
+        fetched: List[FetchedCompanyPage] = []
+        seen_urls = set()
+
+        def fetch_unseen(page: DiscoveredCompanyPage) -> None:
+            if len(fetched) >= company_input.max_pages:
+                return
+            key = page.url.rstrip("/").lower()
+            if key in seen_urls:
+                return
+            seen_urls.add(key)
+            fetched.append(self._fetch_page(page))
+
+        homepage_seed = next((page for page in discovered if page.page_type == PageType.HOMEPAGE), None)
+        seed_remainder = [page for page in discovered if page is not homepage_seed]
+
+        if homepage_seed:
+            fetch_unseen(homepage_seed)
+
+        homepage = next((page for page in fetched if page.page_type == PageType.HOMEPAGE and page.text), None)
+        if homepage:
+            for page in pages_from_homepage(homepage, company_input.max_pages):
+                fetch_unseen(page)
+
+        for page in seed_remainder:
+            fetch_unseen(page)
+
+        return useful_pages(fetched, company_input.max_pages)
+
+    def _discover_pages(self, company_input: CompanyIntelInput) -> List[DiscoveredCompanyPage]:
+        """Create candidate pages from the company input."""
+
+        seeds: List[DiscoveredCompanyPage] = []
+        if company_input.website:
+            website = normalize_website(company_input.website)
+            seeds.append(
+                DiscoveredCompanyPage(
+                    url=website,
+                    page_type=PageType.HOMEPAGE,
+                    confidence=1.0,
+                    discovery_method=DiscoveryMethod.INPUT_WEBSITE,
+                )
+            )
+            seeds.extend(common_path_pages(website))
+            return dedupe_pages(seeds)[: company_input.max_pages]
+
+        for url in guess_company_domains(company_input.company_name or ""):
+            seeds.append(
+                DiscoveredCompanyPage(
+                    url=url,
+                    page_type=PageType.HOMEPAGE,
+                    confidence=0.25,
+                    discovery_method=DiscoveryMethod.GUESSED_DOMAIN,
+                )
+            )
+        return dedupe_pages(seeds)[: company_input.max_pages]
+
+    def _fetch_page(self, page: DiscoveredCompanyPage) -> FetchedCompanyPage:
+        """Fetch and normalize one company page."""
+
+        try:
+            response = requests.get(
+                normalize_website(page.url),
+                timeout=self.timeout,
+                headers={"User-Agent": "Mozilla/5.0 company-intel-bot"},
+            )
+            response.raise_for_status()
+        except requests.RequestException as error:
+            return FetchedCompanyPage(
+                url=page.url,
+                page_type=page.page_type,
+                warnings=[f"Fetch failed: {error}"],
+            )
+
+        html = response.text
+        soup = BeautifulSoup(html, "html.parser")
+        title = page_title(soup)
+        text = trafilatura.extract(
+            html,
+            url=response.url,
+            include_comments=False,
+            include_tables=False,
+        ) or soup_text(soup)
+        return FetchedCompanyPage(
+            url=page.url,
+            canonical_url=response.url,
+            title=title,
+            page_type=page.page_type if page.page_type != PageType.OTHER else classify_url(response.url, title),
+            text=text or "",
+            headings=page_headings(soup),
+            links=page_links(soup, response.url),
+            fetched_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    def _extract(
+        self,
+        company_input: CompanyIntelInput,
+        pages: Sequence[FetchedCompanyPage],
+    ) -> CompanyIntelResult:
+        """Extract normalized company intelligence from fetched pages."""
+
+        llm = self.llm or XAIStructuredClient()
+        response = llm.complete(
+            response_model=CompanyIntelLLMResponse,
+            messages=build_company_intel_messages(
+                company_input,
+                pages,
+                response_schema=CompanyIntelLLMResponse.model_json_schema(),
+                response_contract_name="CompanyIntelLLMResponse",
+            ),
+            temperature=0.0,
+            max_tokens=24000,
+        )
+        warnings = dedupe_warning_strings([*response.result.warnings, *response.warnings])
+        source_pages = list(response.result.source_pages or pages)
+        return response.result.model_copy(update={"source_pages": source_pages, "warnings": warnings})

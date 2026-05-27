@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/utils/store';
-import { api, AvailableProviders } from '@/utils/api';
+import { api } from '@/utils/api';
 import Header from '@/components/Header';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { motion } from 'framer-motion';
@@ -19,14 +19,7 @@ export default function SettingsPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const [providers, setProviders] = useState<AvailableProviders | null>(null);
-    const [selectedProvider, setSelectedProvider] = useState('');
-    const [selectedModel, setSelectedModel] = useState('');
-    const [modelsLoading, setModelsLoading] = useState(true);
-
     const [focusedInput, setFocusedInput] = useState<string | null>(null);
-    const [hoveredProvider, setHoveredProvider] = useState<string | null>(null);
-    const [hoveredModel, setHoveredModel] = useState<string | null>(null);
     const [deleteHovered, setDeleteHovered] = useState(false);
 
     useEffect(() => {
@@ -35,31 +28,8 @@ export default function SettingsPage() {
         }
         if (user) {
             setName(user.name);
-            setSelectedProvider(user.llm_provider || 'grok');
-            setSelectedModel(user.llm_model || '');
         }
     }, [user, isAuthenticated, _hasHydrated, router]);
-
-    useEffect(() => {
-        loadProviders();
-    }, []);
-
-    const loadProviders = async () => {
-        try {
-            const result = await api.getLLMProviders();
-            setProviders(result);
-        } catch {
-            setProviders({
-                providers: {
-                    grok: { default_model: 'grok-3', models: ['grok-3', 'grok-3-mini'] },
-                    gemini: { default_model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
-                    deepseek: { default_model: 'deepseek-chat', models: ['deepseek-chat', 'deepseek-reasoner'] },
-                }
-            });
-        } finally {
-            setModelsLoading(false);
-        }
-    };
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -67,7 +37,7 @@ export default function SettingsPage() {
         setSaveMessage('');
 
         try {
-            await api.updateUser({ name, llm_provider: selectedProvider, llm_model: selectedModel || undefined });
+            await api.updateUser({ name });
             await fetchUser();
             setSaveMessage('Profile updated successfully!');
             setTimeout(() => setSaveMessage(''), 3000);
@@ -90,16 +60,7 @@ export default function SettingsPage() {
         }
     };
 
-    const availableModels = providers?.providers?.[selectedProvider]?.models || [];
-    const defaultModel = providers?.providers?.[selectedProvider]?.default_model || '';
-
-    useEffect(() => {
-        if (defaultModel && !selectedModel) {
-            setSelectedModel(defaultModel);
-        }
-    }, [selectedProvider, defaultModel]);
-
-    const hasChanges = name !== user?.name || selectedProvider !== (user?.llm_provider || 'grok') || selectedModel !== (user?.llm_model || '');
+    const hasChanges = name !== user?.name;
 
     if (!_hasHydrated || !isAuthenticated || !user) {
         return null;
@@ -220,130 +181,6 @@ export default function SettingsPage() {
                                 </button>
                             </div>
                         </form>
-                    </div>
-
-                    {/* AI Model Section */}
-                    <div
-                        className="border-b pb-8 mb-8"
-                        style={{ borderColor: 'var(--border)' }}
-                    >
-                        <p
-                            className="text-xs uppercase tracking-widest mb-4"
-                            style={{ color: 'var(--text-3)' }}
-                        >
-                            AI Model
-                        </p>
-
-                        {modelsLoading ? (
-                            <p className="text-sm" style={{ color: 'var(--text-3)' }}>
-                                Loading providers...
-                            </p>
-                        ) : (
-                            <>
-                                {/* Provider selector */}
-                                <div className="mb-5">
-                                    <label
-                                        className="text-xs block mb-1.5"
-                                        style={{ color: 'var(--text-2)' }}
-                                    >
-                                        Provider
-                                    </label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {providers && Object.entries(providers.providers).map(([key]) => {
-                                            const isSelected = selectedProvider === key;
-                                            const isHovered = hoveredProvider === key && !isSelected;
-                                            return (
-                                                <button
-                                                    key={key}
-                                                    type="button"
-                                                    onClick={() => setSelectedProvider(key)}
-                                                    onMouseEnter={() => setHoveredProvider(key)}
-                                                    onMouseLeave={() => setHoveredProvider(null)}
-                                                    className="capitalize text-sm py-2 rounded-md"
-                                                    style={{
-                                                        border: isSelected
-                                                            ? '1px solid var(--accent-border)'
-                                                            : isHovered
-                                                                ? '1px solid var(--border-strong)'
-                                                                : '1px solid var(--border)',
-                                                        background: isSelected ? 'var(--accent-dim)' : 'var(--card)',
-                                                        color: isSelected
-                                                            ? 'var(--accent)'
-                                                            : isHovered
-                                                                ? 'var(--text-1)'
-                                                                : 'var(--text-2)',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s',
-                                                    }}
-                                                >
-                                                    {key}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Model selector */}
-                                <div>
-                                    <label
-                                        className="text-xs block mb-1.5"
-                                        style={{ color: 'var(--text-2)' }}
-                                    >
-                                        Model
-                                    </label>
-                                    <div>
-                                        {availableModels.map((model, idx) => {
-                                            const isSelected = selectedModel === model;
-                                            const isHovered = hoveredModel === model && !isSelected;
-                                            const isLast = idx === availableModels.length - 1;
-                                            return (
-                                                <div
-                                                    key={model}
-                                                    onClick={() => setSelectedModel(model)}
-                                                    onMouseEnter={() => setHoveredModel(model)}
-                                                    onMouseLeave={() => setHoveredModel(null)}
-                                                    className="flex items-center gap-2 py-3 px-0 text-sm"
-                                                    style={{
-                                                        borderBottom: isLast ? 'none' : '1px solid var(--border)',
-                                                        color: isSelected
-                                                            ? 'var(--accent)'
-                                                            : isHovered
-                                                                ? 'var(--text-1)'
-                                                                : 'var(--text-2)',
-                                                        cursor: 'pointer',
-                                                        transition: 'color 0.15s',
-                                                    }}
-                                                >
-                                                    {/* Selection indicator */}
-                                                    <span
-                                                        style={{
-                                                            width: '6px',
-                                                            height: '6px',
-                                                            borderRadius: '50%',
-                                                            background: isSelected ? 'var(--accent)' : 'transparent',
-                                                            flexShrink: 0,
-                                                            transition: 'background 0.15s',
-                                                        }}
-                                                    />
-                                                    <span>{model}</span>
-                                                    {model === defaultModel && (
-                                                        <span
-                                                            className="text-xs px-1.5 py-0.5 rounded"
-                                                            style={{
-                                                                border: '1px solid var(--border)',
-                                                                color: 'var(--text-3)',
-                                                            }}
-                                                        >
-                                                            default
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </div>
 
                     {/* Danger Zone */}

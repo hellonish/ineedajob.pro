@@ -66,11 +66,10 @@ const workflows = [
         summary: 'A user action creates durable state first, then fills in data as independent work completes.',
         steps: [
             'POST /api/jobs writes a placeholder Job with status analyzing.',
-            'The same request creates a JobLensSession linked to that job.',
-            'FastAPI BackgroundTasks starts _run_pipeline_background after the response is prepared.',
-            'Wave 1 runs profile extraction and JD parsing concurrently.',
-            'Wave 2 runs company intelligence, match analysis, and contact strategy concurrently.',
-            'The final action plan runs after the dependent results exist.',
+            'The same request creates an internal JobLensSession linked to that job.',
+            'FastAPI BackgroundTasks starts run_job_analysis_background after the response is prepared.',
+            'Wave 1 ensures a unified profile exists and parses the JD concurrently.',
+            'Wave 2 runs company intelligence, match analysis, and reachout concurrently.',
             'Each completed step is persisted and emitted to the browser over WebSocket.',
         ],
         concepts: ['DAG scheduling', 'fan-out/fan-in', 'event-driven UI', 'checkpointed state', 'latency hiding'],
@@ -82,7 +81,7 @@ const workflows = [
             'Upload validates file type, size, and ownership.',
             'A parser is selected based on source type and extension.',
             'Parsed source data is saved per file in ProfileFile.',
-            'POST /api/profile/unified merges all parsed sources with discrepancy-aware logic.',
+            'POST /api/profile/unified merges all parsed sources into one canonical profile.',
             'A cached extracted profile is generated for repeated JobLens runs.',
         ],
         concepts: ['schema normalization', 'entity resolution', 'deduplication', 'cache materialization', 'source-of-truth design'],
@@ -105,17 +104,12 @@ const apiGroups = [
     {
         name: 'Auth API',
         endpoints: '/api/auth/google, /api/auth/google/callback, /api/auth/me, /api/auth/profile',
-        purpose: 'Handles Google OAuth, JWT session creation, current-user lookup, profile updates, and user-scoped LLM provider settings.',
+        purpose: 'Handles Google OAuth, JWT session creation, current-user lookup, and profile updates.',
     },
     {
         name: 'Jobs API',
-        endpoints: '/api/jobs, /api/jobs/{id}, /api/jobs/track, /api/jobs/{id}/reevaluate',
-        purpose: 'Creates tracked or AI-analyzed jobs, exposes job detail/list views, updates status and notes, and stores score deltas.',
-    },
-    {
-        name: 'JobLens API',
-        endpoints: '/api/joblens/sessions/*',
-        purpose: 'Exposes the six JobLens steps as explicit session operations for profile extraction, JD parsing, intel, matching, contacts, and planning.',
+        endpoints: '/api/jobs, /api/jobs/{id}, /api/jobs/{id}/analysis, /api/jobs/track',
+        purpose: 'Creates tracked or AI-analyzed jobs, exposes job detail/list views, updates status and notes, and returns linked analysis results.',
     },
     {
         name: 'Profile API',
@@ -124,8 +118,8 @@ const apiGroups = [
     },
     {
         name: 'Support APIs',
-        endpoints: '/api/cover-letters, /api/discrepancies, /api/news, /ws/{token}',
-        purpose: 'Power generated letters, discrepancy reports, company-news enrichment, and real-time progress delivery.',
+        endpoints: '/api/cover-letters, /api/news, /ws/{token}',
+        purpose: 'Power generated letters, company-news enrichment, and real-time progress delivery.',
     },
 ];
 
@@ -133,7 +127,7 @@ const databaseTables = [
     {
         table: 'users',
         role: 'Identity root for all owned data. Stores email, name, picture, and selected LLM provider/model.',
-        relationship: 'One user owns jobs, cover letters, discrepancies, profile files, profile, and JobLens sessions.',
+        relationship: 'One user owns jobs, cover letters, profile files, profile, and JobLens sessions.',
     },
     {
         table: 'jobs',
@@ -152,7 +146,7 @@ const databaseTables = [
     },
     {
         table: 'user_profiles',
-        role: 'Materialized profile record. Stores legacy file paths, parsed source data, unified profile JSON, discrepancy result, cached extracted profile, and additional context.',
+        role: 'Materialized profile record. Stores legacy file paths, parsed source data, unified profile JSON, cached extracted profile, and additional context.',
         relationship: 'One profile per user.',
     },
     {
@@ -161,7 +155,7 @@ const databaseTables = [
         relationship: 'Belongs to job; supports re-evaluation deltas.',
     },
     {
-        table: 'cover_letters and discrepancies',
+        table: 'cover_letters',
         role: 'Generated artifacts. Store user-facing AI outputs as JSON so they remain editable and inspectable.',
         relationship: 'Belong to user; cover letters may link to jobs.',
     },
@@ -189,7 +183,7 @@ const storageChoices = [
 const frontendChoices = [
     {
         title: 'App Router pages as feature boundaries',
-        detail: 'Each feature has a route directory: dashboard, jobs, profile, cover letters, discrepancies, settings, and this hidden system-design route.',
+        detail: 'Each feature has a route directory: dashboard, jobs, profile, cover letters, settings, and this hidden system-design route.',
     },
     {
         title: 'A typed API facade',
@@ -201,7 +195,7 @@ const frontendChoices = [
     },
     {
         title: 'Single global WebSocket',
-        detail: 'useGlobalWebSocket opens one authenticated connection and routes events to discrepancy listeners and per-session JobLens subscribers.',
+        detail: 'useGlobalWebSocket opens one authenticated connection and routes events to per-session JobLens subscribers.',
     },
     {
         title: 'Progressive rendering',
@@ -251,7 +245,7 @@ const csConcepts = [
     },
     {
         concept: 'Entity resolution',
-        use: 'Profile unification and discrepancy analysis align companies, schools, roles, and skills across inconsistent sources.',
+        use: 'Profile unification aligns companies, schools, roles, and skills across inconsistent sources.',
     },
     {
         concept: 'Weighted scoring',
@@ -320,9 +314,8 @@ const moduleGroups = [
     {
         title: 'API modules',
         modules: [
-            ['auth router', 'OAuth, JWTs, current user, profile settings, and provider model metadata.'],
-            ['jobs router', 'Job CRUD plus the automatic JobLens orchestration entry point.'],
-            ['joblens router', 'Manual session and step-level APIs for the six-stage intelligence pipeline.'],
+            ['auth router', 'OAuth, JWTs, current user, and profile settings.'],
+            ['jobs router', 'Job CRUD plus the automatic profile, JD, match, company, and reachout pipeline.'],
             ['profile router', 'File uploads, file catalog, downloads, deletes, source parsing, and profile unification.'],
             ['ws router', 'Authenticated socket endpoint backed by the in-process connection manager.'],
         ],
@@ -334,7 +327,6 @@ const moduleGroups = [
             ['analysis', 'Qualification matching, formatting check, keyword matching, weighted score, and re-evaluation.'],
             ['joblens', 'Profile extraction, JD parse, company intelligence, match analysis, contacts, and action plan.'],
             ['profile', 'Resume, LinkedIn, and portfolio parsing plus unification.'],
-            ['discrepancy', 'Cross-source comparison and consistency scoring.'],
             ['cover_letter', 'Tone detection, prompt enhancement, and mode-specific generation.'],
             ['models/llm', 'Provider abstraction and structured model-call boundary.'],
         ],
@@ -342,8 +334,6 @@ const moduleGroups = [
 ];
 
 const incompleteItems = [
-    'The automatic JobLens flow and manual /api/joblens step APIs overlap; one durable orchestration contract would be cleaner.',
-    'RunPipelineRequest exists in schemas but no endpoint currently exposes a run-existing-session operation.',
     'FastAPI BackgroundTasks are not durable across API process restarts; production orchestration should add retryable job state.',
     'Local upload storage should move to object storage with signed URLs, checksums, and lifecycle cleanup.',
     'SQLite additive schema checks should become explicit migrations before the data model grows further.',
