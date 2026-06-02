@@ -177,10 +177,11 @@ async def create_checkout(
     # ── Plan SWITCH path ──────────────────────────────────────────────────────
     # If the user already has an active Stripe subscription, DO NOT create a new
     # Checkout (that would create a SECOND subscription and double-bill). Instead
-    # modify the existing subscription's price in place. Stripe prorates the
-    # difference and fires `customer.subscription.updated`, which the webhook
-    # handler (_handle_subscription_updated) uses to update the plan + grant the
-    # credit delta.
+    # modify the existing subscription's price in place (Stripe prorates), and
+    # apply the plan change to OUR DB SYNCHRONOUSLY here — do not rely on the
+    # webhook, which may race the redirect or not be running in local dev.
+    # The webhook (_handle_subscription_updated) remains a safety net; it no-ops
+    # once plan_id already matches.
     if sub.stripe_subscription_id and sub.status in ("active", "trialing"):
         try:
             stripe_sub = _stripe.Subscription.retrieve(sub.stripe_subscription_id)
@@ -188,17 +189,33 @@ async def create_checkout(
             # Already on this price? Nothing to do.
             if current_item["price"]["id"] == price_id:
                 return {"url": f"{FRONTEND_URL}/billing"}
+
             _stripe.Subscription.modify(
                 sub.stripe_subscription_id,
                 items=[{"id": current_item["id"], "price": price_id}],
                 proration_behavior="create_prorations",
                 metadata={"user_id": current_user.id},
             )
-            # No redirect to Stripe needed — change is applied immediately.
+
+            # Apply the plan change in our DB immediately.
+            new_plan = db.query(Plan).filter(Plan.code == body.plan_code).first()
+            old_plan = db.query(Plan).filter(Plan.id == sub.plan_id).first()
+            if new_plan and old_plan and new_plan.id != old_plan.id:
+                from datetime import datetime as _dt
+                sub.plan_id = new_plan.id
+                sub.status = "active"
+                db.commit()
+                # Grant the upgrade delta (downgrades keep current balance — no rollback).
+                delta = new_plan.monthly_credits - old_plan.monthly_credits
+                if delta > 0:
+                    ref = f"switch:{sub.stripe_subscription_id}:{new_plan.code}:{_dt.utcnow():%Y-%m}"
+                    grant(db, current_user.id, delta, ref=ref, kind="grant")
+
             return {"url": f"{FRONTEND_URL}/billing?success=1"}
         except Exception:
             # If the stored subscription is stale/invalid in Stripe, fall through
             # to a fresh Checkout below rather than failing the request.
+            db.rollback()
             pass
 
     # ── First-time purchase path ──────────────────────────────────────────────
