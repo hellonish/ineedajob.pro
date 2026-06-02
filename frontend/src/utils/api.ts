@@ -56,7 +56,11 @@ async function fetchWithAuth(url: string, options: FetchOptions = {}) {
             : rawDetail != null && typeof rawDetail === 'object'
             ? (rawDetail as { message?: string }).message ?? JSON.stringify(rawDetail)
             : error.message;
-        const apiError = new Error(detail || 'Request failed') as Error & { code?: string };
+        const apiError = new Error(detail || 'Request failed') as ApiError;
+        apiError.status = response.status;
+        if (rawDetail != null && typeof rawDetail === 'object') {
+            apiError.body = rawDetail as ApiError['body'];
+        }
         // Attach structured code from the detail object when available (e.g. NO_PROFILE_DOCUMENTS)
         if (rawDetail != null && typeof rawDetail === 'object' && (rawDetail as { code?: string }).code) {
             apiError.code = (rawDetail as { code: string }).code;
@@ -65,6 +69,64 @@ async function fetchWithAuth(url: string, options: FetchOptions = {}) {
     }
 
     return response.json();
+}
+
+// ============ Error types ============
+
+export interface ApiError extends Error {
+    code?: string;
+    status?: number;
+    body?: {
+        detail?: string;
+        needed?: number;
+        balance?: number;
+        retry_after?: number;
+        upgrade_url?: string;
+        topup_url?: string;
+        portal_url?: string;
+        code?: string;
+    };
+}
+
+export function isApiError(e: unknown): e is ApiError {
+    return e instanceof Error;
+}
+
+// ============ Billing types ============
+
+export interface CapMap { [task: string]: number; }
+
+export interface Plan {
+    code: 'free' | 'starter' | 'pro' | 'max';
+    name: string;
+    price_cents: number;
+    monthly_credits: number;
+    daily_caps: CapMap;
+    weekly_caps: CapMap | null;
+}
+
+export interface BillingStatus {
+    plan_code: 'free' | 'starter' | 'pro' | 'max';
+    plan_name: string;
+    status: 'active' | 'trialing' | 'past_due' | 'canceled';
+    balance: number;
+    period_end: string | null;
+    daily_caps: CapMap;
+    weekly_caps: CapMap | null;
+    monthly_credits: number;
+}
+
+export interface UsageEvent {
+    id: string;
+    task_type: string;
+    provider: string;
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    raw_cost_usd: number;
+    credits_charged: number;
+    failed: boolean;
+    created_at: string;
 }
 
 // ============ Types matching API schemas ============
@@ -554,6 +616,17 @@ export const api = {
         if (!res.ok) throw new Error('Failed to download file');
         return res.blob();
     },
+
+    // Billing
+    getBillingStatus: (): Promise<BillingStatus> => fetchWithAuth('/api/billing/me'),
+    getPlans: (): Promise<Plan[]> => fetchWithAuth('/api/billing/plans'),
+    getUsage: (): Promise<UsageEvent[]> => fetchWithAuth('/api/billing/usage'),
+    createCheckout: (planCode: string): Promise<{ url: string }> =>
+        fetchWithAuth('/api/billing/checkout', { method: 'POST', body: JSON.stringify({ plan_code: planCode }) }),
+    createPortal: (): Promise<{ url: string }> =>
+        fetchWithAuth('/api/billing/portal', { method: 'POST' }),
+    createTopup: (): Promise<{ url: string }> =>
+        fetchWithAuth('/api/billing/topup', { method: 'POST' }),
 
     // News
     getNews: (companyName: string): Promise<NewsResponse> => fetchWithAuth(`/api/news/${encodeURIComponent(companyName)}`),
