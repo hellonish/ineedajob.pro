@@ -452,7 +452,9 @@ def test_linkedin_search_urls_generated_when_no_candidates():
 
     assert result.candidates == []
     assert len(result.linkedin_search_urls) > 0
-    assert all(url.startswith("https://www.linkedin.com/search/results/people/") for url in result.linkedin_search_urls)
+    # Phase 3D: fallback now includes both People-Search URLs and company /people/ pages.
+    assert all(url.startswith("https://www.linkedin.com/") for url in result.linkedin_search_urls)
+    assert any(url.startswith("https://www.linkedin.com/search/results/people/") for url in result.linkedin_search_urls)
     # Broad company search should always be included
     assert any("Atom+Investors" in url or "Atom Investors" in url for url in result.linkedin_search_urls)
 

@@ -13,8 +13,6 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from dotenv import load_dotenv
 
-from engine.providers import InputTooLarge
-
 load_dotenv()
 
 from .routers import auth, jobs, cover_letters, news, ws, profile
@@ -52,14 +50,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-
-@app.exception_handler(InputTooLarge)
-async def _input_too_large_handler(request: Request, exc: InputTooLarge):
-    """Oversized LLM prompt → 413. Endpoints already refund via settle_failure."""
-    return JSONResponse(
-        status_code=413,
-        content={"detail": "Input too large. Reduce the size of your documents or job description."},
-    )
 
 # Session middleware for OAuth
 app.add_middleware(

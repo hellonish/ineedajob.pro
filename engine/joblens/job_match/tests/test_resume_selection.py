@@ -109,10 +109,10 @@ class TestResumeActionPromptBuilding:
 
         assert "2 resume file(s)" in system
         assert "selected_resume_filename" in system
-        assert "select the ONE that best fits" in system
+        assert "Select the ONE that best fits" in system
 
-    def test_length_preservation_instructions_present_with_candidates(self):
-        """Length preservation rule appears in system prompt when candidates provided."""
+    def test_gap_coverage_and_volume_instructions_present_with_candidates(self):
+        """Phase 3C: gap-coverage + output-volume rules replace the old zero-sum length rule."""
         request = JobMatchRequest(
             profile=_PROFILE,
             job_description=_JD,
@@ -121,11 +121,14 @@ class TestResumeActionPromptBuilding:
         messages = build_resume_actions_messages(request, _SCORE)
         system = messages[0]["content"]
 
-        assert "Length preservation" in system
-        assert "bullet/line count" in system
+        # The zero-sum "Length preservation" mandate was deliberately removed in Phase 3C.
+        assert "Length preservation" not in system
+        assert "Gap coverage" in system
+        assert "biggest_gaps" in system
+        assert "5 to 9 high-impact actions" in system
 
-    def test_length_preservation_instructions_present_with_base_text(self):
-        """Length preservation also applies for single base_resume_text path."""
+    def test_gap_coverage_and_volume_instructions_present_with_base_text(self):
+        """Phase 3C: gap-coverage + output-volume rules apply on the single base_resume_text path too."""
         request = JobMatchRequest(
             profile=_PROFILE,
             job_description=_JD,
@@ -134,7 +137,8 @@ class TestResumeActionPromptBuilding:
         messages = build_resume_actions_messages(request, _SCORE)
         system = messages[0]["content"]
 
-        assert "Length preservation" in system
+        assert "Length preservation" not in system
+        assert "Gap coverage" in system
 
     def test_candidates_take_priority_over_base_resume_text(self):
         """When both resume_candidates and base_resume_text set, candidates win."""
