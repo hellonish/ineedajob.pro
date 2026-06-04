@@ -163,8 +163,8 @@ export default function UpgradePrompt({ open, onClose, kind, needed, balance, re
                                     borderRadius: 'var(--radius-sm)',
                                     cursor: working ? 'not-allowed' : 'pointer',
                                     opacity: working ? 0.5 : 1, transition: 'all 140ms ease',
-                                    background: isCredits ? 'var(--accent)' : 'var(--accent-soft)',
-                                    color: isCredits ? 'var(--on-accent)' : 'var(--accent-ink)',
+                                    background: isCredits ? 'var(--btn-primary)' : 'var(--accent-soft)',
+                                    color: isCredits ? 'var(--on-btn-primary)' : 'var(--accent-ink)',
                                     border: `1px solid var(--accent)`,
                                 }}>
                                     {working ? '…' : config.primaryLabel}

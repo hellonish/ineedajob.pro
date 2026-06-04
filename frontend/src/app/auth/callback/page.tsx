@@ -38,7 +38,7 @@ function CallbackHandler() {
                 <p className="text-sm text-[var(--text-3)]">{error}</p>
                 <button
                     onClick={() => router.push('/')}
-                    className="!mt-6 !px-4 !py-2 bg-[var(--accent)] text-[var(--on-accent)] rounded-lg hover:opacity-90 transition-colors"
+                    className="!mt-6 !px-4 !py-2 bg-[var(--btn-primary)] text-[var(--on-btn-primary)] rounded-lg hover:opacity-90 transition-colors"
                 >
                     Try Again
                 </button>

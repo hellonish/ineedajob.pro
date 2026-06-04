@@ -274,7 +274,7 @@ function QuickCoverLetterContent() {
                             </button>
                             <button
                                 onClick={handleDownload}
-                                className="px-4 py-2 text-sm font-medium text-[var(--on-accent)] bg-[var(--accent)] hover:opacity-90 rounded-lg transition-colors cursor-pointer shadow-lg shadow-none"
+                                className="px-4 py-2 text-sm font-medium text-[var(--on-btn-primary)] bg-[var(--btn-primary)] hover:opacity-90 rounded-lg transition-colors cursor-pointer shadow-lg shadow-none"
                             >
                                 Download as PDF
                             </button>
@@ -360,8 +360,8 @@ function QuickCoverLetterContent() {
                                 disabled={generating}
                                 className="w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                 style={{
-                                    background: generating ? 'var(--surface)' : 'var(--accent)',
-                                    color: generating ? 'var(--text-3)' : 'var(--on-accent)',
+                                    background: generating ? 'var(--surface)' : 'var(--btn-primary)',
+                                    color: generating ? 'var(--text-3)' : 'var(--on-btn-primary)',
                                     border: '1px solid transparent',
                                 }}
                             >

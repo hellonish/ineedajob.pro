@@ -530,11 +530,11 @@ export default function ResumeEditor({ initialData, onSave, onCancel, isSubmitti
                     <button
                         onClick={() => onSave(resume)}
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent)] rounded-lg shadow-lg shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-[var(--on-btn-primary)] bg-[var(--btn-primary)] hover:bg-[var(--btn-primary)] rounded-lg shadow-lg shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {isSubmitting ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-[var(--on-btn-primary)]/30 border-t-[var(--on-btn-primary)] rounded-full animate-spin" />
                                 Analyzing...
                             </>
                         ) : (

@@ -30,6 +30,10 @@
   --accent-ink:   oklch(0.380 0.150 245);
   --on-accent:    oklch(0.985 0.004 240);
 
+  /* Primary button fill (not links, badges, or charts) */
+  --btn-primary:     oklch(0.190 0.020 250);
+  --on-btn-primary:  oklch(1.000 0 0);
+
   /* Semantic bands */
   --strong:       oklch(0.545 0.150 155);
   --strong-soft:  oklch(0.945 0.040 155);
@@ -116,6 +120,8 @@
   --accent-soft:  oklch(0.290 0.080 235);
   --accent-ink:   oklch(0.880 0.110 235);
   --on-accent:    oklch(0.140 0.014 250);
+  --btn-primary:     oklch(0.965 0.006 240);
+  --on-btn-primary:  oklch(0.135 0.012 250);
   --strong:       oklch(0.770 0.150 155);
   --strong-soft:  oklch(0.290 0.055 155);
   --good:         oklch(0.770 0.130 235);

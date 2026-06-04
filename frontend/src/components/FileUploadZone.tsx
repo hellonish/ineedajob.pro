@@ -154,8 +154,8 @@ export default function FileUploadZone({ triggerId }: FileUploadZoneProps) {
                                 style={{
                                     height: 28, padding: '0 10px', fontSize: 12.5, fontWeight: 500,
                                     borderRadius: 'var(--radius-sm)',
-                                    background: hasStageable ? 'var(--accent)' : 'var(--surface-2)',
-                                    color: hasStageable ? 'var(--on-accent)' : 'var(--text-3)',
+                                    background: hasStageable ? 'var(--btn-primary)' : 'var(--surface-2)',
+                                    color: hasStageable ? 'var(--on-btn-primary)' : 'var(--text-3)',
                                     border: '1px solid transparent',
                                     cursor: hasStageable ? 'pointer' : 'not-allowed',
                                     opacity: hasStageable ? 1 : 0.5,

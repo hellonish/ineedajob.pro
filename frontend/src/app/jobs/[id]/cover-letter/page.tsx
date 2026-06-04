@@ -253,7 +253,7 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                             </button>
                             <button
                                 onClick={handleDownload}
-                                className="px-5 py-2.5 text-sm font-semibold text-[var(--on-accent)] bg-[var(--accent)] hover:opacity-90 active:scale-95 rounded-lg transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-[var(--accent)]/30 ring-2 ring-[var(--accent)]/20"
+                                className="px-5 py-2.5 text-sm font-semibold text-[var(--on-btn-primary)] bg-[var(--btn-primary)] hover:opacity-90 active:scale-95 rounded-lg transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-[var(--accent)]/30 ring-2 ring-[var(--accent)]/20"
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
@@ -340,8 +340,8 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
                                 disabled={generating}
                                 className="w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                 style={{
-                                    background: generating ? 'var(--surface)' : 'var(--accent)',
-                                    color: generating ? 'var(--text-3)' : 'var(--on-accent)',
+                                    background: generating ? 'var(--surface)' : 'var(--btn-primary)',
+                                    color: generating ? 'var(--text-3)' : 'var(--on-btn-primary)',
                                     border: '1px solid transparent',
                                 }}
                             >

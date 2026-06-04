@@ -71,9 +71,10 @@ export default function RootLayout({
       className={`${geist.variable} ${geistMono.variable} ${lora.variable} ${mounted && theme === 'dark' ? 'dark' : ''}`}
     >
       <head>
-        <title>Wand - JobLens Console</title>
-        <meta name="description" content="Track jobs, analyze fit, and generate application material with Wand." />
+        <title>iNeedaJob.pro — AI career intelligence</title>
+        <meta name="description" content="Know your fit before you apply. AI reads your resume and every job listing — then gives you a score, gap list, and exact edits." />
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

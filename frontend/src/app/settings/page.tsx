@@ -9,6 +9,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import UserAvatar from '@/components/UserAvatar';
 import ReactCrop, { type PercentCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/config/support';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -393,9 +394,9 @@ export default function SettingsPage() {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     height: 32, padding: '0 14px',
                     borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 500,
-                    border: hasChanges && !isSaving ? '1px solid var(--accent)' : '1px solid var(--border)',
-                    background: hasChanges && !isSaving ? 'var(--accent)' : 'var(--surface)',
-                    color: hasChanges && !isSaving ? 'var(--on-accent)' : 'var(--text-3)',
+                    border: hasChanges && !isSaving ? '1px solid var(--btn-primary)' : '1px solid var(--border)',
+                    background: hasChanges && !isSaving ? 'var(--btn-primary)' : 'var(--surface)',
+                    color: hasChanges && !isSaving ? 'var(--on-btn-primary)' : 'var(--text-3)',
                     cursor: hasChanges && !isSaving ? 'pointer' : 'not-allowed',
                     transition: 'all 140ms ease',
                   }}
@@ -434,6 +435,27 @@ export default function SettingsPage() {
                 );
               })}
             </div>
+          </SettingRow>
+        </Section>
+
+        {/* ── Help ───────────────────────────────────────────────────── */}
+        <Section title="Help">
+          <SettingRow
+            label="Contact"
+            hint="Questions, feedback, or account issues."
+          >
+            <a
+              href={SUPPORT_MAILTO}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--accent-ink)',
+                textDecoration: 'underline',
+                textUnderlineOffset: 2,
+              }}
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </SettingRow>
         </Section>
 
@@ -532,8 +554,8 @@ export default function SettingsPage() {
                 style={{
                   height: 32, padding: '0 16px', borderRadius: 'var(--radius-sm)',
                   fontSize: 13, fontWeight: 500,
-                  border: '1px solid var(--accent)', background: 'var(--accent)',
-                  color: 'var(--on-accent)', cursor: 'pointer',
+                  border: '1px solid var(--btn-primary)', background: 'var(--btn-primary)',
+                  color: 'var(--on-btn-primary)', cursor: 'pointer',
                 }}
               >
                 Set photo

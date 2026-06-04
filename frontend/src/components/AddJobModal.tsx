@@ -506,8 +506,8 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     disabled={!canAnalyze || isCreating}
                                     style={{
                                         height: 32, padding: '0 14px', fontSize: 13, fontWeight: 500,
-                                        background: canAnalyze && !isCreating ? 'var(--accent)' : 'var(--surface-2)',
-                                        color: canAnalyze && !isCreating ? 'var(--on-accent)' : 'var(--text-3)',
+                                        background: canAnalyze && !isCreating ? 'var(--btn-primary)' : 'var(--surface-2)',
+                                        color: canAnalyze && !isCreating ? 'var(--on-btn-primary)' : 'var(--text-3)',
                                         border: '1px solid transparent',
                                         borderRadius: 'var(--radius-sm)',
                                         cursor: canAnalyze && !isCreating ? 'pointer' : 'not-allowed',
@@ -522,8 +522,8 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                     disabled={!canTrack || isCreating}
                                     style={{
                                         height: 32, padding: '0 14px', fontSize: 13, fontWeight: 500,
-                                        background: canTrack && !isCreating ? 'var(--accent)' : 'var(--surface-2)',
-                                        color: canTrack && !isCreating ? 'var(--on-accent)' : 'var(--text-3)',
+                                        background: canTrack && !isCreating ? 'var(--btn-primary)' : 'var(--surface-2)',
+                                        color: canTrack && !isCreating ? 'var(--on-btn-primary)' : 'var(--text-3)',
                                         border: '1px solid transparent',
                                         borderRadius: 'var(--radius-sm)',
                                         cursor: canTrack && !isCreating ? 'pointer' : 'not-allowed',

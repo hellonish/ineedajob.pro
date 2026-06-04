@@ -65,14 +65,14 @@ export default function Header() {
             style={{ color: 'var(--text)', overflow: 'hidden', minWidth: 0, flex: 1 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Wand" style={{ width: 32, height: 32, borderRadius: 'var(--radius)', display: 'block', flexShrink: 0 }} />
+            <img src="/logo.svg" alt="ineedajob.pro" style={{ width: 32, height: 32, borderRadius: 'var(--radius)', display: 'block', flexShrink: 0 }} />
             {!collapsed && (
               <span style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 'calc(var(--display-scale, 0.92) * 18px)',
-                letterSpacing: '-0.01em', fontWeight: 500,
+                fontSize: 'calc(var(--display-scale, 0.92) * 15px)',
+                letterSpacing: '-0.02em', fontWeight: 500,
                 whiteSpace: 'nowrap',
-              }}>Wand</span>
+              }}>iNeedaJob.pro</span>
             )}
           </button>
           {!collapsed && (
@@ -241,8 +241,8 @@ export default function Header() {
       >
         <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Wand" style={{ width: 32, height: 32, borderRadius: 'var(--radius)', display: 'block' }} />
-          <span className="font-medium">Wand</span>
+          <img src="/logo.svg" alt="iNeedaJob.pro" style={{ width: 32, height: 32, borderRadius: 'var(--radius)', display: 'block' }} />
+          <span className="font-medium" style={{ letterSpacing: '-0.02em', fontSize: 14 }}>iNeedaJob.pro</span>
         </button>
         <div className="flex items-center gap-1">
           {NAV_LINKS.slice(0, 3).map(link => {

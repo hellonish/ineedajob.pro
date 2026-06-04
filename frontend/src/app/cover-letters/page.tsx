@@ -32,7 +32,7 @@ function Btn({ children, variant = 'secondary', size = 'md', icon, onClick, disa
     const sizes = { sm: { h: 28, px: 10, fs: 12.5 }, md: { h: 34, px: 14, fs: 13.5 }, lg: { h: 42, px: 18, fs: 14.5 } };
     const s = sizes[size];
     const vs = {
-        primary: { background: 'var(--accent)', color: 'var(--on-accent)', border: '1px solid var(--accent)' },
+        primary: { background: 'var(--btn-primary)', color: 'var(--on-btn-primary)', border: '1px solid var(--btn-primary)' },
         secondary: { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
         ghost: { background: 'transparent', color: 'var(--text-2)', border: '1px solid transparent' },
         soft: { background: 'var(--accent-soft)', color: 'var(--accent-ink)', border: '1px solid transparent' },
@@ -425,7 +425,6 @@ export default function CoverLettersPage() {
                                 <Btn
                                     size="sm"
                                     variant="ghost"
-                                    icon={<SparklesIcon />}
                                     onClick={handleGenerate}
                                     disabled={!canGenerate}
                                 >
@@ -735,8 +734,8 @@ export default function CoverLettersPage() {
                                         style={{
                                             height: 34, padding: '0 18px', fontSize: 13, fontWeight: 500,
                                             borderRadius: 'var(--radius-sm)', border: 'none',
-                                            background: pastedJd.trim() ? 'var(--accent)' : 'var(--surface-2)',
-                                            color: pastedJd.trim() ? 'var(--on-accent)' : 'var(--text-3)',
+                                            background: pastedJd.trim() ? 'var(--btn-primary)' : 'var(--surface-2)',
+                                            color: pastedJd.trim() ? 'var(--on-btn-primary)' : 'var(--text-3)',
                                             cursor: pastedJd.trim() ? 'pointer' : 'not-allowed',
                                             transition: 'all 140ms ease',
                                         }}

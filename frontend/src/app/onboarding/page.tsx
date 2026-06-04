@@ -107,11 +107,11 @@ function WandLogo() {
 
 // Extension step intentionally removed from onboarding flow (v1).
 // InstallHopper component kept below for future re-introduction.
-const STEPS: { key: 'terms'; label: string }[] = [
-  { key: 'terms', label: 'Terms' },
+const STEPS: { key: 'agreements'; label: string }[] = [
+  { key: 'agreements', label: 'Agreements' },
 ];
 
-function Stepper({ current }: { current: 'terms' }) {
+function Stepper({ current }: { current: 'agreements' }) {
   const currentIdx = STEPS.findIndex((s) => s.key === current);
 
   return (
@@ -369,7 +369,7 @@ function Terms({
               A couple of agreements
             </h1>
             <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5, margin: 0 }}>
-              Wand analyzes your career documents with AI. We need your explicit consent before
+              iNeedaJob.pro analyzes your career documents with AI. We need your explicit consent before
               anything is processed.
             </p>
           </div>
@@ -389,7 +389,7 @@ function Terms({
             }}
           >
             <p style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 6, margin: '0 0 6px' }}>
-              Summary of terms
+              Before you continue
             </p>
             <p style={{ margin: '0 0 8px' }}>
               Your uploaded resumes, LinkedIn exports, and portfolios are stored privately and used
@@ -399,7 +399,7 @@ function Terms({
               Career documents are sent to third-party LLM providers (Gemini, xAI, DeepSeek) solely
               to produce your analysis. They are never used to train models and never sold.
             </p>
-            <p style={{ margin: 0 }}>
+            <p style={{ margin: '0 0 8px' }}>
               You can delete any file, any job, or your entire account at any time from Settings.
               Deletion is permanent and removes associated analysis.
             </p>
@@ -411,8 +411,8 @@ function Terms({
               checked={tos}
               onToggle={() => setTos((v) => !v)}
               required={true}
-              title="I agree to the Terms of Service and Privacy Policy"
-              desc="The basics of using Wand and how your data is handled."
+              title="I agree to use iNeedaJob.pro"
+              desc="Required to create an account and use the service."
             />
             <CheckRow
               checked={ai}
@@ -475,8 +475,8 @@ function Terms({
                   height: 36,
                   borderRadius: 'var(--radius-sm)',
                   border: 'none',
-                  background: ready ? 'var(--accent)' : 'var(--surface-2)',
-                  color: ready ? 'var(--on-accent)' : 'var(--text-3)',
+                  background: ready ? 'var(--btn-primary)' : 'var(--surface-2)',
+                  color: ready ? 'var(--on-btn-primary)' : 'var(--text-3)',
                   fontSize: 13.5,
                   fontWeight: 500,
                   cursor: ready ? 'pointer' : 'not-allowed',
@@ -1167,7 +1167,7 @@ function InstallHopper({
             }}
           >
             <WandIcon name="arrow-left" size={13} stroke={2} />
-            Back to terms
+            Back
           </button>
         </div>
 
@@ -1275,8 +1275,8 @@ function Done({
               padding: '0 14px',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
-              background: 'var(--accent)',
-              color: 'var(--on-accent)',
+              background: 'var(--btn-primary)',
+              color: 'var(--on-btn-primary)',
               fontSize: 13.5,
               fontWeight: 500,
               cursor: 'pointer',
@@ -1332,7 +1332,7 @@ function Done({
 export default function OnboardingPage() {
   const { isAuthenticated, token, _hasHydrated, user, setOnboardingComplete, fetchUser } = useStore();
   const router = useRouter();
-  const [step, setStep] = useState<'terms' | 'done'>('terms');
+  const [step, setStep] = useState<'agreements' | 'done'>('agreements');
 
   useEffect(() => {
     if (_hasHydrated && !token) {
@@ -1357,7 +1357,7 @@ export default function OnboardingPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-      {step === 'terms' && (
+      {step === 'agreements' && (
         <Terms onBack={() => router.push('/')} onContinue={() => setStep('done')} user={user} />
       )}
       {step === 'done' && (

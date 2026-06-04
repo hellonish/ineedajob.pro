@@ -126,7 +126,7 @@ export default function ProfileDocumentReminder() {
                     onClick={handleUpload}
                     style={{
                         flex: 1, height: 32,
-                        background: 'var(--accent)', color: 'var(--on-accent)',
+                        background: 'var(--btn-primary)', color: 'var(--on-btn-primary)',
                         border: 'none', borderRadius: 'var(--radius-sm)',
                         fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
                         transition: 'opacity 120ms',

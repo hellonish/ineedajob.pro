@@ -78,11 +78,11 @@ function CompanyMark({ label, hue, size = 28 }: { label: string; hue: number; si
 // ── Pipeline steps ─────────────────────────────────────────────────────────
 
 const PIPELINE_STEPS = [
-  { key: 'profile',          label: 'Profile' },
-  { key: 'job_description',  label: 'Job description' },
-  { key: 'company_intel',    label: 'Company intel' },
-  { key: 'match_analysis',   label: 'Match analysis' },
-  { key: 'reachout',         label: 'Reachout' },
+  { key: 'profile', label: 'Profile' },
+  { key: 'job_description', label: 'Job description' },
+  { key: 'company_intel', label: 'Company intel' },
+  { key: 'match_analysis', label: 'Match analysis' },
+  { key: 'reachout', label: 'Reachout' },
 ] as const;
 
 // ── TopBar ─────────────────────────────────────────────────────────────────
@@ -154,20 +154,17 @@ function TopBar({ onTrack, onAnalyze }: { onTrack: () => void; onAnalyze: () => 
             padding: '7px 13px',
             fontSize: 13,
             fontWeight: 500,
-            color: 'var(--on-accent)',
-            background: 'var(--accent)',
-            border: '1px solid var(--accent)',
+            color: 'var(--bg)',
+            background: 'var(--text)',
+            border: '1px solid var(--text)',
             borderRadius: 'var(--radius-sm)',
             cursor: 'pointer',
             transition: 'opacity 120ms',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.82'; }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2l1.09 3.26L16 6.27l-3.26 1.09L11.64 10 10.55 6.74 7.29 5.65l3.26-1.09L11.64 2zm7 10l.73 2.18L22 15l-2.18.73L19 18l-.73-2.18L16 15l2.18-.73L19 12zM5 14l.55 1.64L8 16.36l-1.64.55L5 19l-.55-1.64L2 16.36l1.64-.55L5 14z" />
-          </svg>
-          Analyze a job
+          Analyze Job
         </button>
       </div>
     </div>
@@ -299,8 +296,8 @@ function ProcessingCard({ job, onOpen, hasBorder }: { job: JobListItem; onOpen: 
                   background: state === 'done'
                     ? 'var(--strong)'
                     : state === 'running'
-                    ? 'var(--accent)'
-                    : 'var(--surface-3)',
+                      ? 'var(--accent)'
+                      : 'var(--surface-3)',
                 }}
               />
               <span style={{
@@ -333,16 +330,16 @@ function ProcessingCard({ job, onOpen, hasBorder }: { job: JobListItem; onOpen: 
 // ── StatsRow ───────────────────────────────────────────────────────────────
 
 const STAT_ITEMS = [
-  { key: 'active',    label: 'Active',     tone: 'neutral' },
-  { key: 'applied',   label: 'Applied',    tone: 'accent' },
-  { key: 'interview', label: 'Interview',  tone: 'good' },
-  { key: 'offer',     label: 'Offer',      tone: 'strong' },
-  { key: 'rejected',  label: 'Rejected',   tone: 'weak' },
+  { key: 'active', label: 'Active', tone: 'neutral' },
+  { key: 'applied', label: 'Applied', tone: 'accent' },
+  { key: 'interview', label: 'Interview', tone: 'good' },
+  { key: 'offer', label: 'Offer', tone: 'strong' },
+  { key: 'rejected', label: 'Rejected', tone: 'weak' },
 ] as const;
 
 function StatDotColor(tone: string): string {
   if (tone === 'neutral') return 'var(--text-3)';
-  if (tone === 'accent')  return 'var(--accent)';
+  if (tone === 'accent') return 'var(--accent)';
   return `var(--${tone})`;
 }
 

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/utils/store';
 import { api, type Plan, type UsageEvent, type BillingStatus, isApiError } from '@/utils/api';
 import Header from '@/components/Header';
-
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const PLAN_ORDER = ['free', 'starter', 'pro', 'max'] as const;
@@ -145,7 +144,7 @@ function Btn({
     };
 
     const variants: Record<string, React.CSSProperties> = {
-        primary:   { background: 'var(--accent)', color: 'var(--on-accent)', border: '1px solid var(--accent)' },
+        primary:   { background: 'var(--btn-primary)', color: 'var(--on-btn-primary)', border: '1px solid var(--btn-primary)' },
         secondary: { background: 'var(--surface)', color: 'var(--text-2)', border: '1px solid var(--border)' },
         ghost:     { background: 'transparent', color: 'var(--text-2)', border: '1px solid transparent' },
     };
@@ -362,8 +361,8 @@ function CurrentPlanCard({
 
                 {/* Right — action buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', minWidth: 184 }}>
-                    <Btn variant="primary" icon="plus" onClick={onTopup} disabled={topupLoading}
-                        style={{ justifyContent: 'center' }}>
+                    <Btn variant="secondary" icon="plus" onClick={onTopup} disabled={topupLoading}
+                        style={{ justifyContent: 'center', background: 'var(--text)', color: 'var(--bg)', border: '1px solid var(--text)' }}>
                         {topupLoading ? 'Redirecting…' : 'Top up usage'}
                     </Btn>
                     {!isFree && (
@@ -437,8 +436,9 @@ function PlanCard({
                 style={{
                     width: '100%', height: 30, padding: '0 12px', fontSize: 12.5, fontWeight: 500,
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--accent)', background: isUpgrade ? 'var(--accent)' : 'transparent',
-                    color: isUpgrade ? 'var(--on-accent)' : 'var(--accent)',
+                    border: `1px solid ${isUpgrade ? 'var(--btn-primary)' : 'var(--accent)'}`,
+                    background: isUpgrade ? 'var(--btn-primary)' : 'transparent',
+                    color: isUpgrade ? 'var(--on-btn-primary)' : 'var(--accent)',
                     cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
                 }}
             >

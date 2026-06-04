@@ -38,7 +38,7 @@ function Btn({ children, variant = 'secondary', size = 'md', icon, onClick, disa
     const sizes = { sm: { h: 28, px: 10, fs: 12.5 }, md: { h: 34, px: 14, fs: 13.5 }, lg: { h: 42, px: 18, fs: 14.5 } };
     const s = sizes[size];
     const vs = {
-        primary: { background: 'var(--accent)', color: 'var(--on-accent)', border: '1px solid var(--accent)' },
+        primary: { background: 'var(--btn-primary)', color: 'var(--on-btn-primary)', border: '1px solid var(--btn-primary)' },
         secondary: { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
         ghost: { background: 'transparent', color: 'var(--text-2)', border: '1px solid transparent' },
         soft: { background: 'var(--accent-soft)', color: 'var(--accent-ink)', border: '1px solid transparent' },
@@ -281,11 +281,11 @@ export default function ProfilePage() {
                         </Btn>
                         <Btn
                             variant="primary"
-                            icon={<SparklesIcon />}
                             onClick={handleUnify}
                             disabled={!hasAnyData || unifying}
+                            style={{ background: 'var(--text)', color: 'var(--bg)', border: '1px solid var(--text)' }}
                         >
-                            {unifying ? 'Generating…' : 'Update profile'}
+                            {unifying ? 'Generating…' : 'Create Unified Profile'}
                         </Btn>
                     </>
                 }
