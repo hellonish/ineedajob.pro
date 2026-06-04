@@ -3,6 +3,8 @@ Wand API - FastAPI Backend
 """
 
 import os
+import time
+import psutil
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,6 +14,9 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from dotenv import load_dotenv
+
+_start_time = time.time()
+_proc = psutil.Process()
 
 load_dotenv()
 
@@ -86,6 +91,31 @@ app.include_router(billing_router.router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+async def metrics():
+    """Live process stats — memory, CPU, uptime. Local dev + ops use only."""
+    mem = _proc.memory_info()
+    cpu = _proc.cpu_percent(interval=0.1)
+    vm = psutil.virtual_memory()
+    return {
+        "uptime_seconds": round(time.time() - _start_time),
+        "process": {
+            "rss_mb": round(mem.rss / 1024 / 1024, 1),
+            "vms_mb": round(mem.vms / 1024 / 1024, 1),
+            "cpu_percent": cpu,
+            "threads": _proc.num_threads(),
+            "open_files": len(_proc.open_files()),
+        },
+        "system": {
+            "total_ram_mb": round(vm.total / 1024 / 1024),
+            "available_ram_mb": round(vm.available / 1024 / 1024),
+            "used_percent": vm.percent,
+            "cpu_count": psutil.cpu_count(),
+            "load_avg_1m": round(psutil.getloadavg()[0], 2),
+        },
+    }
 
 
 @app.get("/")
