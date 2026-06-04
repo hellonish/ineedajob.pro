@@ -140,6 +140,25 @@ class ReachoutSearchPlan(StrictReachoutModel):
     negative_filters: List[str] = Field(default_factory=list)
     search_strategy_notes: List[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_personas(cls, values):
+        """Map unrecognised persona strings to OTHER instead of crashing."""
+        if not isinstance(values, dict):
+            return values
+        raw = values.get("target_personas")
+        if not isinstance(raw, list):
+            return values
+        valid = {e.value for e in ReachoutPersona}
+        coerced = []
+        for item in raw:
+            if isinstance(item, str) and item not in valid:
+                coerced.append(ReachoutPersona.OTHER.value)
+            else:
+                coerced.append(item)
+        values = {**values, "target_personas": coerced}
+        return values
+
 
 class SearchResult(StrictReachoutModel):
     """One raw search result."""

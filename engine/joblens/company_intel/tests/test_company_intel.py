@@ -16,6 +16,7 @@ from engine.joblens.company_intel import (
     ProductSignal,
     TechnicalSignals,
 )
+from engine.joblens.company_intel.models import CompanyIntelLLMResult
 from engine.joblens.company_intel.helpers import classify_url, pages_from_homepage
 
 
@@ -76,9 +77,9 @@ def _homepage():
 
 
 def _result(company_input):
-    """Create a minimal extracted result."""
+    """Create a minimal LLM result (excludes source_pages — those are filled in by the service)."""
 
-    return CompanyIntelResult(
+    return CompanyIntelLLMResult(
         input=company_input,
         identity=CompanyIdentity(
             name="Acme Cloud",
@@ -102,7 +103,6 @@ def _result(company_input):
             cloud=["AWS"],
             databases=["Postgres"],
         ),
-        source_pages=[_homepage()],
     )
 
 

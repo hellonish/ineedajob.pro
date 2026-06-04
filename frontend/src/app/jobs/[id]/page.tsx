@@ -1146,19 +1146,48 @@ function ContactStrategyView({ data }: { data: ReachoutResult }) {
                     {/* Raw queries — collapsed by default */}
                     {showQueries && (
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {queries.map((q, i) => (
-                                <div key={i} style={{
-                                    padding: '7px 10px', background: 'var(--surface)',
-                                    borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-soft)',
-                                }}>
-                                    <p style={{
-                                        margin: 0, fontSize: 11.5, color: 'var(--text-2)',
-                                        fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.5,
-                                    }}>
-                                        {s(q.query)}
-                                    </p>
-                                </div>
-                            ))}
+                            {queries.map((q, i) => {
+                                const queryText = s(q.query);
+                                const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(queryText)}`;
+                                return (
+                                    <a
+                                        key={i}
+                                        href={googleUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'block', padding: '8px 10px',
+                                            background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
+                                            border: '1px solid var(--border-soft)',
+                                            textDecoration: 'none', cursor: 'pointer',
+                                            transition: 'border-color 120ms, background 120ms',
+                                        }}
+                                        onMouseEnter={e => {
+                                            (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--accent)';
+                                            (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-tint)';
+                                        }}
+                                        onMouseLeave={e => {
+                                            (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-soft)';
+                                            (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface)';
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                            </svg>
+                                            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent)' }}>
+                                                Search Google
+                                            </span>
+                                        </div>
+                                        <p style={{
+                                            margin: 0, fontSize: 10.5, color: 'var(--text-4)',
+                                            fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.5,
+                                        }}>
+                                            {queryText}
+                                        </p>
+                                    </a>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

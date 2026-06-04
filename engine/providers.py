@@ -321,7 +321,32 @@ class DeepSeekClient:
             _debug_capture(step, messages, content)
 
         content = _extract_json(content)
-        return response_model.model_validate_json(content)
+        try:
+            return response_model.model_validate_json(content)
+        except Exception as validation_err:
+            # One repair attempt: feed the error back to the model and ask it to fix its output.
+            _log.warning("DeepSeek validation error for step=%r — attempting repair: %s", step, validation_err)
+            repair_messages = list(messages) + [
+                {"role": "assistant", "content": content},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Your response failed schema validation with this error:\n{validation_err}\n\n"
+                        "Fix the JSON so it exactly matches the required schema and return only the corrected JSON."
+                    ),
+                },
+            ]
+            repair_response = _retry_call(
+                lambda: self._client.chat.completions.create(
+                    model=self.model,
+                    messages=repair_messages,
+                    response_format={"type": "json_object"},
+                    temperature=0.0,
+                    max_tokens=max_tok,
+                )
+            )
+            repair_content = _extract_json(repair_response.choices[0].message.content or "")
+            return response_model.model_validate_json(repair_content)
 
 
 # ─── Convenience constants ────────────────────────────────────────────────────

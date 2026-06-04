@@ -58,12 +58,19 @@ Output contract:
 - Add negative filters that the deterministic gate and search user should avoid, such as jobs pages, company pages, posts, school pages, directories, and unrelated companies.
 - Do not include private contact lookup, email lookup, phone lookup, scraping instructions, or bypass instructions.
 
+IMPORTANT — target_personas field:
+The `target_personas` field in the output schema is a list of persona CATEGORY LABELS, NOT role titles.
+You MUST only use these exact string values: "recruiter", "technical_recruiter", "talent_acquisition",
+"engineering_leader", "hiring_manager", "senior_management", "peer_engineer", "school_alumni", "founder", "other".
+Do NOT put role titles like "software engineer", "AI engineer", or "Python developer" in `target_personas`.
+Role titles belong inside the `query` strings — not in `target_personas`.
+
 Query strategy:
 - Generate 6-8 queries. Expect duplicates and rejections from search; volume improves recall.
 - Use exact-phrase company names.
 - Use common variants when company name may differ from domain or brand.
-- Include role families from `target_roles` when supplied.
-- Use title/persona phrases:
+- Include role families from `target_roles` when supplied — as search query phrases, not in `target_personas`.
+- Use title/persona phrases inside queries:
   - "technical recruiter"
   - "recruiter"
   - "talent acquisition"

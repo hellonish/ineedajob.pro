@@ -142,13 +142,33 @@ class CompanyIntelService:
             "crunchbase.com",
             "wikipedia.org",
             "twitter.com",
+            "x.com",
+            "facebook.com",
+            "instagram.com",
+            "youtube.com",
+            "youtu.be",
+            "bloomberg.com",
+            "reuters.com",
+            "wsj.com",
+            "forbes.com",
+            "businesswire.com",
+            "prnewswire.com",
+            "yelp.com",
+            "zoominfo.com",
+            "pitchbook.com",
+            "owler.com",
+            "dnb.com",
+            "bbb.org",
         }
 
         query = f'"{company_name}" official website'
         try:
-            results = search_ddgs(query, limit=3)
+            results = search_ddgs(query, limit=5)
         except Exception:
             return None
+
+        # Build lowercase tokens from company name for overlap check.
+        name_tokens = {t.lower() for t in company_name.split() if len(t) > 2}
 
         for result in results:
             parsed = urlparse(result.url)
@@ -156,6 +176,11 @@ class CompanyIntelService:
             if not netloc:
                 continue
             if any(netloc == d or netloc.endswith(f".{d}") for d in _NOISY_DOMAINS):
+                continue
+            # Require at least one company name token to appear in the domain
+            # so we don't return an unrelated site that happens to rank first.
+            domain_root = netloc.split(".")[0]
+            if name_tokens and not any(t in domain_root or domain_root in t for t in name_tokens):
                 continue
             return f"{parsed.scheme}://{parsed.netloc}"
 
