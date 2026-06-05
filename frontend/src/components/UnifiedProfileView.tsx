@@ -50,7 +50,7 @@ interface UnifiedProfileViewProps {
 }
 
 export default function UnifiedProfileView({ profile, dim }: UnifiedProfileViewProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'experience' | 'education' | 'skills' | 'raw'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'experience' | 'education' | 'skills'>('overview');
 
     if (!profile) return null;
 
@@ -86,7 +86,6 @@ export default function UnifiedProfileView({ profile, dim }: UnifiedProfileViewP
         { id: 'experience', label: 'Experience' },
         { id: 'education', label: 'Education' },
         { id: 'skills', label: 'Skills' },
-        { id: 'raw', label: 'Raw Data' },
     ] as const;
 
     return (
@@ -276,14 +275,6 @@ export default function UnifiedProfileView({ profile, dim }: UnifiedProfileViewP
                     </div>
                 )}
 
-                {/* Raw */}
-                {activeTab === 'raw' && (
-                    <div style={{ background: 'var(--bg-tint)', borderRadius: 'var(--radius-sm)', padding: 14, overflow: 'auto', maxHeight: 560 }}>
-                        <pre style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', margin: 0, lineHeight: 1.6 }}>
-                            {JSON.stringify(profile, null, 2)}
-                        </pre>
-                    </div>
-                )}
             </div>
         </div>
     );

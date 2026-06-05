@@ -65,7 +65,7 @@ export default function Header() {
             style={{ color: 'var(--text)', overflow: 'hidden', minWidth: 0, flex: 1 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="ineedajob.pro" style={{ width: 32, height: 32, borderRadius: 'var(--radius)', display: 'block', flexShrink: 0 }} />
+            <img src="/logo.svg" alt="ineedajob.pro" style={{ width: 24, height: 24, borderRadius: 'var(--radius)', display: 'block', flexShrink: 0 }} />
             {!collapsed && (
               <span style={{
                 fontFamily: 'var(--font-display)',

@@ -79,7 +79,7 @@ export default function LandingCTA({ onGoogleLogin }: { onGoogleLogin: () => voi
             Continue with Google
           </BrutalButton>
           <span style={{ fontFamily: fontBody, fontSize: 12, color: BRUTAL.ink3, textAlign: 'center' }}>
-            Free forever plan · Your data stays yours
+            Your data stays yours
           </span>
         </div>
       </motion.div>

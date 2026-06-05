@@ -410,7 +410,7 @@ export default function SettingsPage() {
 
         {/* ── Appearance ───────────────────────────────────────────── */}
         <Section title="Appearance">
-          <SettingRow label="Theme" hint="Choose how Wand looks to you.">
+          <SettingRow label="Theme" hint="Choose how Hopper looks to you.">
             <div style={{ display: 'flex', gap: 4, background: 'var(--bg-tint)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 3 }}>
               {([['light', 'sun', 'Light'], ['dark', 'moon', 'Dark']] as const).map(([value, icon, label]) => {
                 const active = theme === value;
@@ -499,7 +499,7 @@ export default function SettingsPage() {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={() => { logout(); router.push('/'); }}
         title="Sign Out"
-        message="Are you sure you want to sign out of Wand?"
+        message="Are you sure you want to sign out of Hopper?"
         confirmLabel="Sign Out"
         isDestructive={false}
       />

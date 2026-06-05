@@ -566,8 +566,6 @@ function JDParseView({ data }: { data: JobDescriptionBreakdownResult }) {
                     <TagCloud items={arr<string>(breakdown.keywords)} tone="accent" />
                 </div>
             )}
-            <Warnings items={arr<string>(breakdown.extraction_notes)} />
-            <Warnings items={data.warnings} />
         </div>
     );
 }
@@ -648,7 +646,6 @@ function CompanyIntelView({ data }: { data: CompanyIntelResult }) {
                     Sources: {(data.source_pages || []).length} pages
                 </span>
             </div>
-            <Warnings items={data.warnings} />
         </div>
     );
 }
@@ -942,8 +939,6 @@ function MatchAnalysisView({ data }: { data: JobMatchResult }) {
                     </div>
                 )}
             </div>
-
-            <Warnings items={data.warnings} />
         </div>
     );
 }
@@ -970,25 +965,17 @@ function ContactStrategyView({ data }: { data: ReachoutResult }) {
     const queries = arr<Record<string, unknown>>(data.search_plan?.queries);
     const linkedinUrls = arr<string>(data.linkedin_search_urls);
     const company = s(data.search_plan?.company_name || (data.input as Record<string, unknown>)?.company_name);
-    const [showQueries, setShowQueries] = useState(false);
 
-    // Group queries by persona for the summary view
-    const queryGroups: Record<string, { count: number; intents: string[] }> = {};
+    // Group queries by persona, preserving all queries per group
+    const queryGroups: Record<string, { intent: string; queries: Record<string, unknown>[] }> = {};
     for (const q of queries) {
         const persona = s(q.target_persona, 'other');
-        if (!queryGroups[persona]) queryGroups[persona] = { count: 0, intents: [] };
-        queryGroups[persona].count++;
-        const intent = s(q.intent);
-        if (intent && !queryGroups[persona].intents.includes(intent)) {
-            queryGroups[persona].intents.push(intent);
-        }
+        if (!queryGroups[persona]) queryGroups[persona] = { intent: s(q.intent), queries: [] };
+        queryGroups[persona].queries.push(q);
     }
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 14 }}>
-
-            {/* Warnings / notes first — most actionable info */}
-            <Warnings items={data.warnings} />
 
             {/* Contacts */}
             {contacts.length > 0 ? (
@@ -1103,93 +1090,74 @@ function ContactStrategyView({ data }: { data: ReachoutResult }) {
                 )
             )}
 
-            {/* Search coverage summary */}
+            {/* Queries grouped by persona — always shown inline */}
             {Object.keys(queryGroups).length > 0 && (
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <SectionTitle>Search coverage</SectionTitle>
-                        <button
-                            onClick={() => setShowQueries(v => !v)}
-                            style={{
-                                fontSize: 11.5, color: 'var(--accent)', background: 'none',
-                                border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)',
-                            }}
-                        >
-                            {showQueries ? 'Hide queries' : 'Show raw queries'}
-                        </button>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {Object.entries(queryGroups).map(([persona, { count, intents }]) => (
+                    <SectionTitle>Queries</SectionTitle>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                        {Object.entries(queryGroups).map(([persona, group]) => (
                             <div key={persona} style={{
-                                display: 'grid', gridTemplateColumns: 'auto 1fr auto',
-                                gap: 12, alignItems: 'start',
-                                padding: '9px 12px', background: 'var(--bg-tint)',
                                 borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-soft)',
+                                overflow: 'hidden',
                             }}>
-                                <span style={{
-                                    fontSize: 11, padding: '2px 7px', borderRadius: 999, whiteSpace: 'nowrap', marginTop: 1,
-                                    background: 'var(--surface-2)', color: 'var(--text-2)',
-                                    fontFamily: 'var(--font-mono)',
+                                {/* Context header */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '8px 12px', background: 'var(--surface-2)',
+                                    borderBottom: '1px solid var(--border-soft)',
                                 }}>
-                                    {personaLabel(persona)}
-                                </span>
-                                <span style={{ fontSize: 12.5, color: 'var(--text-3)', lineHeight: 1.5 }}>
-                                    {intents[0] || ''}
-                                </span>
-                                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-4)', whiteSpace: 'nowrap', marginTop: 2 }}>
-                                    {count} quer{count === 1 ? 'y' : 'ies'}
-                                </span>
+                                    <span style={{
+                                        fontSize: 10.5, padding: '2px 7px', borderRadius: 999, whiteSpace: 'nowrap',
+                                        background: 'var(--surface)', color: 'var(--text-2)',
+                                        fontFamily: 'var(--font-mono)', border: '1px solid var(--border-soft)',
+                                    }}>
+                                        {personaLabel(persona)}
+                                    </span>
+                                    {group.intent && (
+                                        <span style={{ fontSize: 12.5, color: 'var(--text-3)', lineHeight: 1.4 }}>
+                                            {group.intent}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Queries for this persona */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                    {group.queries.map((q, i) => {
+                                        const queryText = s(q.query);
+                                        const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(queryText)}`;
+                                        return (
+                                            <div key={i} style={{
+                                                padding: '9px 12px', background: 'var(--bg-tint)',
+                                                borderTop: i > 0 ? '1px solid var(--border-soft)' : undefined,
+                                                display: 'flex', alignItems: 'baseline', gap: 10,
+                                            }}>
+                                                <a
+                                                    href={googleUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={e => e.stopPropagation()}
+                                                    style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                        textDecoration: 'none', flexShrink: 0,
+                                                    }}
+                                                >
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                    </svg>
+                                                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--accent)', whiteSpace: 'nowrap' }}>Search Google</span>
+                                                </a>
+                                                <p style={{
+                                                    margin: 0, fontSize: 11, color: 'var(--text-3)',
+                                                    fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.5,
+                                                }}>
+                                                    {queryText}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ))}
                     </div>
-
-                    {/* Raw queries — collapsed by default */}
-                    {showQueries && (
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {queries.map((q, i) => {
-                                const queryText = s(q.query);
-                                const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(queryText)}`;
-                                return (
-                                    <a
-                                        key={i}
-                                        href={googleUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            display: 'block', padding: '8px 10px',
-                                            background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
-                                            border: '1px solid var(--border-soft)',
-                                            textDecoration: 'none', cursor: 'pointer',
-                                            transition: 'border-color 120ms, background 120ms',
-                                        }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--accent)';
-                                            (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-tint)';
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-soft)';
-                                            (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface)';
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                            </svg>
-                                            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent)' }}>
-                                                Search Google
-                                            </span>
-                                        </div>
-                                        <p style={{
-                                            margin: 0, fontSize: 10.5, color: 'var(--text-4)',
-                                            fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.5,
-                                        }}>
-                                            {queryText}
-                                        </p>
-                                    </a>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
             )}
         </div>
@@ -1606,7 +1574,7 @@ function ResumeMappingView({ actions, profile }: {
                 </svg>
                 <p style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500, margin: 0 }}>No resume on file</p>
                 <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0, maxWidth: 360, lineHeight: 1.6 }}>
-                    Tag one of your uploaded documents as a <strong>resume</strong> so Wand can map specific lines to targeted suggestions for this role.
+                    Tag one of your uploaded documents as a <strong>resume</strong> so Hopper can map specific lines to targeted suggestions for this role.
                 </p>
                 <a
                     href="/profile"
@@ -2101,7 +2069,7 @@ function ScoreSummary({
                 <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-3)', marginBottom: 4 }}>Analyzing</div>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 'calc(var(--display-scale, 0.92) * 20px)', color: 'var(--text)', lineHeight: 1.3 }}>
-                        Wand is reading the job description, gathering company intel, and scoring your match.
+                        Hopper is reading the job description, gathering company intel, and scoring your match.
                     </div>
                     <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 6 }}>
                         Module results appear below as they finish. You can read completed sections immediately.

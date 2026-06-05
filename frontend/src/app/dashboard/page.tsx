@@ -605,6 +605,7 @@ export default function DashboardPage() {
 
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalMode, setAddModalMode] = useState<'analyze' | 'track'>('analyze');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -701,8 +702,8 @@ export default function DashboardPage() {
       <Header />
 
       <TopBar
-        onTrack={() => setShowAddModal(true)}
-        onAnalyze={() => setShowAddModal(true)}
+        onTrack={() => { setAddModalMode('track'); setShowAddModal(true); }}
+        onAnalyze={() => { setAddModalMode('analyze'); setShowAddModal(true); }}
       />
 
       <div style={{ padding: '20px 24px 100px', display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -765,6 +766,7 @@ export default function DashboardPage() {
       {/* Add Job Modal */}
       <AddJobModal
         isOpen={showAddModal}
+        initialMode={addModalMode}
         onClose={() => setShowAddModal(false)}
         onJobCreated={(jobId) => router.push(`/jobs/${jobId}`)}
         onJobTracked={() => loadJobs()}

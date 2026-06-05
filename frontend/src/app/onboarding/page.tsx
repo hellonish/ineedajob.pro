@@ -87,7 +87,7 @@ function WandLogo() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Wand" style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', display: 'block', flexShrink: 0 }} />
+      <img src="/logo.png" alt="Hopper" style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', display: 'block', flexShrink: 0 }} />
       <span
         style={{
           fontFamily: 'var(--font-display)',
@@ -97,7 +97,7 @@ function WandLogo() {
           letterSpacing: '-0.01em',
         }}
       >
-        Wand
+        Hopper
       </span>
     </div>
   );
@@ -405,13 +405,36 @@ function Terms({
             </p>
           </div>
 
+          {/* Full-document links */}
+          <p style={{ fontSize: 12.5, color: 'var(--text-3)', lineHeight: 1.6, margin: '-10px 0 0' }}>
+            Read the full{' '}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-2)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
+              Terms of Service
+            </a>
+            {' '}and{' '}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-2)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+
           {/* Check rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <CheckRow
               checked={tos}
               onToggle={() => setTos((v) => !v)}
               required={true}
-              title="I agree to use iNeedaJob.pro"
+              title="I agree to the Terms of Service"
               desc="Required to create an account and use the service."
             />
             <CheckRow
@@ -419,7 +442,7 @@ function Terms({
               onToggle={() => setAi((v) => !v)}
               required={true}
               title="I consent to AI processing of my career documents"
-              desc="Required for resume scoring, gap analysis, and cover letters."
+              desc="Required for resume scoring, gap analysis, and cover letters, as described in the Privacy Policy."
             />
             <CheckRow
               checked={updates}
@@ -758,7 +781,7 @@ function HopperDemo() {
                 whiteSpace: 'nowrap',
               }}
             >
-              Wand
+              Hopper
             </span>
             {/* Log It chip */}
             <button
@@ -851,7 +874,7 @@ function HopperDemo() {
             }}
           >
             <WandIcon name="check" size={13} stroke={3} />
-            {toast === 'log' ? 'Application logged' : 'Saved · Opening Wand…'}
+            {toast === 'log' ? 'Application logged' : 'Saved · Opening Hopper…'}
           </div>
         )}
       </div>
@@ -868,7 +891,7 @@ function HopperDemo() {
           color: 'var(--text-3)',
         }}
       >
-        {hover ? 'Pick a mode — Log It or Analyze' : '↑ Hover the Wand button on the right edge'}
+        {hover ? 'Pick a mode — Log It or Analyze' : '↑ Hover the Hopper button on the right edge'}
       </div>
     </div>
   );
@@ -929,7 +952,7 @@ function InstallHopper({
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Hopper</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
-                Wand Companion · Chrome extension
+                Hopper Companion · Chrome extension
               </div>
             </div>
             <span
@@ -973,7 +996,7 @@ function InstallHopper({
               maxWidth: 440,
             }}
           >
-            Hopper watches while you browse. Apply to a job, hover the Wand button on the edge of
+            Hopper watches while you browse. Apply to a job, hover the Hopper button on the edge of
             the page, and it&apos;s logged — or analyzed — in one click.
           </p>
 
@@ -990,7 +1013,7 @@ function InstallHopper({
               icon="check"
               title="Log It"
               tone="soft"
-              desc="Captures the job and syncs to Wand instantly. Zero friction."
+              desc="Captures the job and syncs to Hopper instantly. Zero friction."
             />
             <ModeCard
               icon="sparkles"
@@ -1081,7 +1104,7 @@ function InstallHopper({
               alignItems: 'center',
             }}
           >
-            {['Works on Chrome', 'No account needed to track', 'Syncs to Wand'].map((t) => (
+            {['Works on Chrome', 'No account needed to track', 'Syncs to Hopper'].map((t) => (
               <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <WandIcon name="check" size={12} stroke={2.5} color="oklch(0.65 0.15 145)" />
                 {t}
@@ -1303,7 +1326,7 @@ function Done({
             }}
           >
             <WandIcon name="upload" size={14} stroke={2} />
-            Upload resume
+            Upload documents
           </button>
         </div>
 
@@ -1340,7 +1363,7 @@ export default function OnboardingPage() {
     }
   }, [_hasHydrated, token, router]);
 
-  const handleDone = async (dest: '/dashboard' | '/profile') => {
+  const handleDone = async (dest: '/dashboard' | '/profile' | '/profile?docs=1') => {
     try {
       const { api } = await import('@/utils/api');
       await api.completeOnboarding();
@@ -1363,7 +1386,7 @@ export default function OnboardingPage() {
       {step === 'done' && (
         <Done
           onDashboard={() => handleDone('/dashboard')}
-          onUpload={() => handleDone('/profile')}
+          onUpload={() => handleDone('/profile?docs=1')}
           userName={userName}
         />
       )}

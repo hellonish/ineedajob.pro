@@ -47,11 +47,11 @@ function Btn({ children, variant = 'secondary', size = 'md', icon, onClick, disa
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const MODES = [
-    { key: 'auto', label: 'Auto', desc: 'Wand reads the job and selects the tone that best fits.' },
+    { key: 'auto', label: 'Auto', desc: 'Hopper reads the job and selects the tone that best fits.' },
     { key: 'storyline', label: 'Storyline', desc: 'A narrative connecting your career journey to this opportunity.' },
     { key: 'disruptive', label: 'Disruptive', desc: 'Direct and unconventional — leads with impact over formality.' },
     { key: 'regular', label: 'Regular', desc: 'Standard professional format — universally appropriate.' },
-    { key: 'custom', label: 'Custom', desc: 'Describe your angle — Wand shapes it into a polished letter.' },
+    { key: 'custom', label: 'Custom', desc: 'Describe your angle — Hopper shapes it into a polished letter.' },
 ] as const;
 
 type ModeKey = typeof MODES[number]['key'];

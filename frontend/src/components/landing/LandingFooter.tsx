@@ -31,6 +31,24 @@ export default function LandingFooter() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: 2 }}>
+            {[
+              { href: '/contact', label: 'Contact' },
+              { href: '/terms', label: 'Terms' },
+              { href: '/privacy', label: 'Privacy' },
+              { href: '/refunds', label: 'Refunds' },
+            ].map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                style={{ fontFamily: fontBody, fontSize: 13, color: BRUTAL.ink2, textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = BRUTAL.accent; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = BRUTAL.ink2; }}
+              >
+                {l.label}
+              </a>
+            ))}
+          </div>
           <a
             href={SUPPORT_MAILTO}
             style={{ fontFamily: fontBody, fontSize: 13, color: BRUTAL.ink2, textDecoration: 'none' }}

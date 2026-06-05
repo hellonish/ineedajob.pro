@@ -10,11 +10,11 @@ import ReactMarkdown from 'react-markdown';
 import UpgradePrompt, { type UpgradePromptState } from '@/components/UpgradePrompt';
 
 const MODES = [
-    { id: 'auto', label: 'Auto-Detect', desc: 'Wand reads the job description and selects the tone that best fits this role.' },
+    { id: 'auto', label: 'Auto-Detect', desc: 'Hopper reads the job description and selects the tone that best fits this role.' },
     { id: 'storyline', label: 'Storyline', desc: 'A narrative that connects your career progression to why this role is the right next step.' },
     { id: 'disruptive', label: 'Disruptive', desc: 'Direct and unconventional — skips formalities, leads with demonstrated impact.' },
     { id: 'regular', label: 'Regular', desc: 'Standard professional format — structured, composed, and appropriate for any context.' },
-    { id: 'custom', label: 'Custom Prompt', desc: 'Describe the angle you want to take — Wand shapes it into a complete, polished letter.' },
+    { id: 'custom', label: 'Custom Prompt', desc: 'Describe the angle you want to take — Hopper shapes it into a complete, polished letter.' },
 ];
 
 function QuickCoverLetterContent() {

@@ -88,7 +88,7 @@ export default function LandingHero({ onGoogleLogin }: LandingHeroProps) {
               Continue with Google
             </BrutalButton>
             <div style={{ fontFamily: fontBody, fontSize: 13, color: BRUTAL.ink3 }}>
-              No card · 2-min setup · Free forever plan
+              No card · 2-min setup · Free to start
             </div>
           </motion.div>
         </div>

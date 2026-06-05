@@ -23,6 +23,8 @@ export interface AddJobModalProps {
     onJobCreated?: (jobId: string) => void;
     /** Called after a job is successfully logged via "Just Track". */
     onJobTracked?: () => void;
+    /** Which mode to open the modal in (defaults to 'analyze'). */
+    initialMode?: AddMode;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface AddJobModalProps {
  *
  * Rendered into `document.body` via a React portal.
  */
-export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracked }: AddJobModalProps) {
+export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracked, initialMode = 'analyze' }: AddJobModalProps) {
     // ── All hooks MUST be called before any early return (Rules of Hooks) ──
 
     const router = useRouter();
@@ -41,7 +43,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
     const [mounted, setMounted] = useState(false);
 
     // Mode
-    const [addMode, setAddMode] = useState<AddMode>('analyze');
+    const [addMode, setAddMode] = useState<AddMode>(initialMode);
 
     // Error banner
     const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -66,9 +68,12 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
     // SSR mount effect
     useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
 
+    // Sync mode when modal opens
+    useEffect(() => { if (isOpen) setAddMode(initialMode); }, [isOpen, initialMode]);
+
     /** Reset every form field and switch back to the default mode. */
     const resetForm = useCallback(() => {
-        setAddMode('analyze');
+        setAddMode(initialMode);
         setJdText('');
         setCompanyWebsite('');
         setTrackTitle('');
@@ -297,7 +302,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                         }}
                                     />
                                     <p className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>
-                                        Optional — helps Wand gather company context and culture
+                                        Optional — helps Hopper gather company context and culture
                                     </p>
                                 </div>
                             </div>
@@ -464,7 +469,7 @@ export default function AddJobModal({ isOpen, onClose, onJobCreated, onJobTracke
                                         No profile documents found
                                     </p>
                                     <p style={{ fontSize: 12.5, color: 'rgba(180,100,0,0.85)', margin: 0, lineHeight: 1.55 }}>
-                                        Upload at least one document — resume, LinkedIn export, or portfolio — so Wand can build your profile before analysis.
+                                        Upload at least one document — resume, LinkedIn export, or portfolio — so Hopper can build your profile before analysis.
                                     </p>
                                     <button
                                         onClick={() => { resetForm(); onClose(); router.push('/profile'); }}

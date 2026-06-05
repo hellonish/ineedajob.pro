@@ -31,7 +31,6 @@ const TASK_LABEL: Record<string, string> = {
     cover_letter:       'Cover letter',
     profile_build:      'Profile build',
     reachout:           'Reachout',
-    cover_letter_tone:  'Tone analysis',
     job_analysis_retry: 'Analysis retry',
     profile_upload:     'File upload',
 };
@@ -645,7 +644,7 @@ function UsageThisPeriod({ billing, usage }: { billing: BillingStatus; usage: Us
 
     // Per-task breakdown (tokens)
     const byTask: Record<string, { tokens: number; count: number }> = {};
-    usage.forEach(e => {
+    usage.filter(e => !HIDDEN_TASK_TYPES.has(e.task_type)).forEach(e => {
         byTask[e.task_type] = byTask[e.task_type] ?? { tokens: 0, count: 0 };
         byTask[e.task_type].tokens += e.input_tokens + e.output_tokens;
         byTask[e.task_type].count  += 1;
@@ -757,12 +756,15 @@ function Stat({ label, value, sub, accent, divider }: {
 
 // ── Usage History Table ────────────────────────────────────────────────────────
 
+const HIDDEN_TASK_TYPES = new Set(['cover_letter_tone', 'job_analysis_retry', 'profile_upload']);
+
 function UsageHistory({ usage }: { usage: UsageEvent[] }) {
     const [showAll, setShowAll] = useState(false);
     const COLLAPSED = 6;
     const EXPANDED  = 15;
-    const rows = usage.slice(0, showAll ? EXPANDED : COLLAPSED);
-    const hasMore = usage.length > COLLAPSED;
+    const visible = usage.filter(e => !HIDDEN_TASK_TYPES.has(e.task_type));
+    const rows = visible.slice(0, showAll ? EXPANDED : COLLAPSED);
+    const hasMore = visible.length > COLLAPSED;
 
     return (
         <div>

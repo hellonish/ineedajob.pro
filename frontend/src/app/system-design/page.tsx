@@ -388,10 +388,10 @@ export default function SystemDesignPage() {
                             <Pill>Data modeling</Pill>
                         </div>
                         <h1 className="max-w-4xl text-4xl font-semibold leading-tight md:text-5xl" style={{ color: 'var(--text-1)' }}>
-                            Wand system design
+                            Hopper system design
                         </h1>
                         <p className="mt-5 max-w-3xl text-base leading-7" style={{ color: 'var(--text-2)' }}>
-                            Wand is an AI career intelligence platform built around a layered architecture: a Next.js client, a FastAPI orchestration layer, SQL-backed persistence, file storage, in-process background workflows, WebSocket progress events, and a Python AI engine. The main design challenge is coordinating many slow, structured, partially dependent workflows while keeping the product interactive.
+                            Hopper is an AI career intelligence platform built around a layered architecture: a Next.js client, a FastAPI orchestration layer, SQL-backed persistence, file storage, in-process background workflows, WebSocket progress events, and a Python AI engine. The main design challenge is coordinating many slow, structured, partially dependent workflows while keeping the product interactive.
                         </p>
                     </div>
 
