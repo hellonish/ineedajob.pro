@@ -58,6 +58,16 @@ export function useCareerDocs() {
         setDocs(next);
     }, []);
 
+    // Write to localStorage immediately without triggering a state update (no re-render).
+    // Use this on every keystroke to ensure refreshing never loses unsaved content.
+    const persistDoc = useCallback((id: string, changes: Partial<Pick<CareerDoc, 'title' | 'content'>>) => {
+        const current = readDocs();
+        const next = current.map(d =>
+            d.id === id ? { ...d, ...changes, updatedAt: new Date().toISOString() } : d
+        );
+        writeDocs(next);
+    }, []);
+
     const deleteDoc = useCallback((id: string) => {
         const next = readDocs().filter(d => d.id !== id);
         writeDocs(next);
@@ -68,5 +78,5 @@ export function useCareerDocs() {
         return readDocs().find(d => d.id === id);
     }, []);
 
-    return { docs, hydrated, createDoc, updateDoc, deleteDoc, getDoc };
+    return { docs, hydrated, createDoc, updateDoc, persistDoc, deleteDoc, getDoc };
 }

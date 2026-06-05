@@ -256,6 +256,9 @@ def plan_reachout_queries(
     )
 
 
+_REACHOUT_VALIDATE_RESULT_CAP = 25
+
+
 def validate_reachout_candidates(
     llm: Any,
     reachout_input: ReachoutInput,
@@ -263,11 +266,12 @@ def validate_reachout_candidates(
     gated_results: Sequence[GatedSearchResult],
 ) -> ReachoutCandidateValidationLLMResponse:
     """Validate and normalize pre-gated search results into reachout candidates."""
+    capped = gated_results[:_REACHOUT_VALIDATE_RESULT_CAP]
     return llm.complete(
         response_model=ReachoutCandidateValidationLLMResponse,
-        messages=build_candidate_validator_messages(reachout_input, search_plan, gated_results),
+        messages=build_candidate_validator_messages(reachout_input, search_plan, capped),
         temperature=0.0,
-        max_tokens=4000,
+        max_tokens=8000,
         step="reachout_validate",
     )
 

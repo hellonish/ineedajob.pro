@@ -90,3 +90,6 @@ shipday_phase*.json
 # Next.js build output
 frontend/.next/
 frontend/node_modules/
+
+
+.claude

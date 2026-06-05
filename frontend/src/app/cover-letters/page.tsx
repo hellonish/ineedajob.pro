@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/utils/store';
 import { api, CoverLetter, JobListItem, JDToneAnalysis, Job, isApiError } from '@/utils/api';
+import { coverLettersCache } from '@/utils/cache';
 import Header from '@/components/Header';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
@@ -108,11 +109,24 @@ export default function CoverLettersPage() {
     }, [token, _hasHydrated]);
 
     const loadData = async () => {
+        // Serve cached letters immediately to avoid blank screen on revisit
+        const cachedLetters = coverLettersCache.get('all') as CoverLetter[] | null;
+        if (cachedLetters && cachedLetters.length > 0) {
+            setLetters(cachedLetters);
+            setLoading(false);
+            const first = cachedLetters[0];
+            setActiveId(first.id);
+            setMode((first.mode as ModeKey) || 'auto');
+            const fullLetter = (first.content as Record<string, unknown>)?.full_letter;
+            setLetterText(typeof fullLetter === 'string' ? fullLetter : '');
+        }
+
         try {
             const [fetchedLetters, fetchedJobs] = await Promise.all([
                 api.getCoverLetters().catch(() => [] as CoverLetter[]),
                 api.getJobs().catch(() => [] as JobListItem[])
             ]);
+            coverLettersCache.set('all', fetchedLetters);
             setLetters(fetchedLetters);
             setJobs(fetchedJobs);
             if (fetchedLetters.length > 0) {
@@ -187,8 +201,9 @@ export default function CoverLettersPage() {
             const fullLetter = (result.content as Record<string, unknown>)?.full_letter;
             if (typeof fullLetter === 'string') setLetterText(fullLetter);
 
-            // Reload letters list
+            // Reload letters list and update cache
             const updatedLetters = await api.getCoverLetters().catch(() => letters);
+            coverLettersCache.set('all', updatedLetters);
             setLetters(updatedLetters);
             setActiveId(result.id);
             setDraftJobId(null);

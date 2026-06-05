@@ -66,6 +66,11 @@ def get_signed_url(storage_path: str, expires_in: int = 3600) -> str:
     return result["signedURL"]
 
 
+def download_file(storage_path: str) -> bytes:
+    """Download a private file by its storage path and return raw bytes."""
+    return _storage().from_(FILES_BUCKET).download(storage_path)
+
+
 def delete_file(storage_path: str) -> None:
     """Delete a private file by its storage path."""
     if not storage_path:

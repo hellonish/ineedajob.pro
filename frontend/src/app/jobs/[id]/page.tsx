@@ -16,6 +16,7 @@ import {
 } from '@/utils/api';
 import Header from '@/components/Header';
 import { subscribeToJobLens } from '@/hooks/useGlobalWebSocket';
+import { joblensCache } from '@/utils/cache';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
@@ -2269,10 +2270,28 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }, [_hasHydrated, token, id, router]);
 
     const load = async (silent = false) => {
-        if (!silent) setLoading(true);
+        // Serve from LRU cache immediately for fast revisits
+        if (!silent) {
+            const cached = joblensCache.get(id) as { job: Job; session: JobLensSession | null } | null;
+            if (cached) {
+                setJob(cached.job);
+                setNotes(cached.job.user_notes || '');
+                if (cached.session) {
+                    setSession(cached.session);
+                    initStepStatuses(cached.session, cached.job.status === 'analyzing');
+                }
+            } else {
+                setLoading(true);
+            }
+        }
+
         try {
             const { job: j, session: s } = await api.getJobWithSession(id);
             if (!j) { router.push('/jobs'); return; }
+            // Only cache completed/stable sessions (not actively analyzing)
+            if (j.status !== 'analyzing') {
+                joblensCache.set(id, { job: j, session: s });
+            }
             setJob(j);
             setNotes(j.user_notes || '');
             setSession(prev => {
@@ -2421,6 +2440,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             return;
         }
         try {
+            joblensCache.invalidate(job.id); // new run invalidates stale cache
             const updatedJob = await api.runJobLens(job.id);
             setJob(updatedJob);
 

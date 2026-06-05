@@ -167,15 +167,15 @@ export const useStore = create<AppState>()(
                     const rawToken = localStorage.getItem('token');
                     if (!state.token && rawToken) {
                         state.token = rawToken;
-                        state.isAuthenticated = true; // Will be verified by fetchUser later
                     }
 
-                    // Sync api.ts with store state
+                    // Sync api.ts with store state and mark as authenticated if token exists
                     if (state.token) {
                         setToken(state.token);
+                        state.isAuthenticated = true; // optimistic — fetchUser verifies on protected pages
                     } else {
-                        // If store has no token, ensure api.ts matches
                         clearToken();
+                        state.isAuthenticated = false;
                     }
 
                     state.setHasHydrated(true);

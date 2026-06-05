@@ -58,8 +58,6 @@ def verify_token(token: str) -> Optional[dict]:
 
 def get_or_create_user(db: Session, email: str, name: str, picture: str = None) -> User:
     """Get existing active user or create new one. Deleted accounts are never restored."""
-    from .billing.subscriptions import get_or_create_subscription  # local to avoid circular
-
     user = db.query(User).filter(User.email == email, User.is_deleted == False).first()
     if not user:
         user = User(email=email, name=name, profile_picture=picture)
@@ -73,9 +71,6 @@ def get_or_create_user(db: Session, email: str, name: str, picture: str = None) 
             user.profile_picture = picture
             db.commit()
 
-    # Ensure the user always has a Subscription row + current credits.
-    # For Free-plan users this also performs the lazy monthly reset when the period has expired.
-    get_or_create_subscription(db, user.id)
     return user
 
 

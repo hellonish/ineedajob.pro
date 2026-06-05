@@ -32,27 +32,29 @@ export default function PrivacyPage() {
             <UL>
                 <LI><Strong>Account information.</Strong> When you sign in with Google, we receive your name, email address, and profile picture.</LI>
                 <LI><Strong>Career documents.</Strong> Resumes, LinkedIn exports, portfolios, and any other files you upload, along with the structured profile we extract from them.</LI>
+                <LI><Strong>AI provider API keys.</Strong> If you connect your own AI provider account (&ldquo;bring your own key&rdquo;), the API key you provide is stored <Strong>encrypted at rest</Strong> and is used only to send your requests to that provider on your behalf. We never display your key in full (only the last few characters, for identification), never log it in plaintext, and never share it with anyone other than the provider it belongs to. You can remove a key at any time from Settings.</LI>
                 <LI><Strong>Job and application data.</Strong> Job postings you add, company websites, your notes, application statuses, and the analyses, resume suggestions, cover letters, and outreach drafts generated for you.</LI>
                 <LI><Strong>Communications.</Strong> Messages you send us, such as support requests.</LI>
             </UL>
 
             <H3>Information collected automatically</H3>
             <UL>
-                <LI><Strong>Usage data.</Strong> Actions you take in the app, the tasks you run, and token/credit usage used for billing and rate limiting.</LI>
+                <LI><Strong>Usage data.</Strong> Actions you take in the app, the tasks you run, and the token usage we record for the AI tasks you run (used for product analytics and operating the Service).</LI>
                 <LI><Strong>Technical data.</Strong> Device and browser information, IP address, and log data generated when you interact with the Service.</LI>
             </UL>
 
             <H3>Payment information</H3>
             <P>
-                Payments are processed by Stripe. We do not store your full card details. We receive limited
-                billing information from Stripe, such as your subscription status, plan, and invoice history.
+                The Service is free to use, and we do not collect or process payment information. If you connect
+                your own AI provider account, any billing for your usage is handled directly between you and that
+                provider; we do not receive your card details.
             </P>
 
             <H2>3. How we use your information</H2>
             <UL>
                 <LI>To provide the Service — analyzing jobs, parsing and optimizing resumes, generating cover letters and outreach, and tracking applications.</LI>
                 <LI>To create and maintain your account and unified profile.</LI>
-                <LI>To process payments, manage subscriptions and credits, and enforce usage limits.</LI>
+                <LI>To measure AI token usage for product analytics and to operate the Service.</LI>
                 <LI>To operate, secure, debug, and improve the Service.</LI>
                 <LI>To respond to your support requests and send service-related communications.</LI>
                 <LI>To comply with legal obligations and enforce our <A href="/terms">Terms of Service</A>.</LI>
@@ -65,23 +67,24 @@ export default function PrivacyPage() {
 
             <H2>4. AI processing of your content</H2>
             <P>
-                A core part of the Service sends your career documents and job data to third-party large
-                language model providers — currently <Strong>Google Gemini</Strong>, <Strong>xAI</Strong>, and{' '}
-                <Strong>DeepSeek</Strong> — solely to generate your analysis and results. These providers process
-                your content on our behalf to return output to you.
+                A core part of the Service sends your career documents and job data to the third-party large
+                language model provider whose API key you connect — such as <Strong>Anthropic</Strong>,{' '}
+                <Strong>OpenAI</Strong>, <Strong>Google Gemini</Strong>, <Strong>xAI</Strong>, or{' '}
+                <Strong>DeepSeek</Strong> — solely to generate your analysis and results. Because you connect your
+                own provider account, your content is sent to that provider under your account and is governed by
+                the agreement between you and that provider.
             </P>
             <Note>
-                We do not use your content to train AI models, and we do not sell it. We instruct our providers
-                to process content only to deliver your results. Provider data-handling practices are governed
-                by their own terms; we select providers that support this use.
+                We do not use your content to train AI models, and we do not sell it. We send your content to your
+                chosen provider only to deliver your results. Each provider&rsquo;s data-handling practices are
+                governed by their own terms; review them to understand how they process your content.
             </Note>
 
             <H2>5. How we share information</H2>
             <P>We share personal data only as needed to run the Service:</P>
             <UL>
-                <LI><Strong>AI providers</Strong> (Google Gemini, xAI, DeepSeek) — to generate your results, as described above.</LI>
+                <LI><Strong>AI providers</Strong> (the provider whose API key you connect, such as Anthropic, OpenAI, Google Gemini, xAI, or DeepSeek) — to generate your results, as described above.</LI>
                 <LI><Strong>Google</Strong> — for authentication when you sign in.</LI>
-                <LI><Strong>Stripe</Strong> — to process payments and manage subscriptions.</LI>
                 <LI><Strong>Infrastructure providers</Strong> — hosting, database, and related services used to operate the Service.</LI>
                 <LI><Strong>Legal and safety</Strong> — when required by law, to enforce our terms, or to protect the rights, safety, and security of users and the Service.</LI>
                 <LI><Strong>Business transfers</Strong> — in connection with a merger, acquisition, or sale of assets, subject to this policy.</LI>
@@ -97,14 +100,16 @@ export default function PrivacyPage() {
             </P>
             <P>
                 After account deletion, we may retain limited records where required for legal, tax, accounting,
-                or fraud-prevention purposes (for example, invoice records held by our payment processor), and
-                residual copies may persist in backups for a limited time before being overwritten.
+                or fraud-prevention purposes, and residual copies may persist in backups for a limited time
+                before being overwritten.
             </P>
 
             <H2>7. Security</H2>
             <P>
                 We use reasonable technical and organizational measures to protect your data, including
-                authenticated access controls and encryption in transit. No method of transmission or storage
+                authenticated access controls and encryption in transit. Any AI provider API keys you
+                connect are additionally <Strong>encrypted at rest</Strong> and are decrypted only in memory at
+                the moment a request is sent to your provider. No method of transmission or storage
                 is completely secure, so we cannot guarantee absolute security. Please use a secure Google
                 account and notify us promptly of any suspected unauthorized access.
             </P>

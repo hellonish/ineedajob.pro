@@ -23,7 +23,7 @@ export default function TermsPage() {
             <P>
                 These Terms of Service (the &ldquo;Terms&rdquo;) form a binding agreement between you and{' '}
                 {LEGAL_ENTITY}. They incorporate our{' '}
-                <A href="/privacy">Privacy Policy</A> and <A href="/refunds">Refund Policy</A> by reference.
+                <A href="/privacy">Privacy Policy</A> by reference.
             </P>
 
             <H2>2. Eligibility</H2>
@@ -69,6 +69,15 @@ export default function TermsPage() {
                 is handled and shared.
             </P>
             <P>You represent that you have the right to share Your Content and that it does not violate any law or the rights of others.</P>
+            <P>
+                If you connect your own AI provider account (&ldquo;bring your own key&rdquo;), you authorize us
+                to use the API key you supply solely to send your requests to that provider on your behalf. We
+                store your API key <Strong>encrypted at rest</Strong>, never display it back in full, and never use
+                it for any purpose other than operating the Service for you; you can remove it at any time from
+                Settings. You remain responsible for your provider account, for any usage and charges your
+                provider bills you, and for complying with that provider&rsquo;s terms. See the{' '}
+                <A href="/privacy">Privacy Policy</A> for how your key is stored and handled.
+            </P>
 
             <H2>6. Acceptable use</H2>
             <P>You agree not to:</P>
@@ -77,37 +86,32 @@ export default function TermsPage() {
                 <LI>Upload content that infringes intellectual-property rights, contains malware, or includes another person&rsquo;s personal data without authorization.</LI>
                 <LI>Attempt to reverse engineer, scrape, overload, disrupt, or gain unauthorized access to the Service or its underlying systems.</LI>
                 <LI>Resell, sublicense, or commercially exploit the Service or its AI output except as expressly permitted.</LI>
-                <LI>Circumvent usage limits, rate limits, or billing, or share a single account across multiple people.</LI>
+                <LI>Circumvent usage limits or rate limits, or share a single account across multiple people.</LI>
             </UL>
             <P>We may suspend or terminate accounts that violate these rules.</P>
 
-            <H2>7. Plans, credits, and billing</H2>
+            <H2>7. Cost and your AI provider</H2>
             <P>
-                {LEGAL_COMPANY} offers a free tier and paid subscription plans (Starter, Pro, and Max). Paid
-                plans are billed in advance on a recurring monthly basis through our payment processor, Stripe.
-                By subscribing, you authorize us and Stripe to charge your payment method on each renewal until
-                you cancel.
+                {LEGAL_COMPANY} is free to use. We do not charge subscription fees, sell credits, or process
+                payments. To generate results, the Service runs on AI providers using the API key you connect
+                (&ldquo;bring your own key&rdquo;).
             </P>
             <UL>
-                <LI><Strong>Monthly capacity.</Strong> Each plan includes a monthly allowance of credits and daily/weekly usage limits. Unused monthly capacity does not roll over and resets at the start of each billing period.</LI>
-                <LI><Strong>Top-ups.</Strong> You may purchase additional usage credits as one-time top-ups. Purchased top-up credits do not expire and remain available across billing periods.</LI>
-                <LI><Strong>Upgrades.</Strong> Upgrading takes effect immediately, and you will be charged a prorated amount for the remainder of the current period.</LI>
-                <LI><Strong>Downgrades.</Strong> Downgrading takes effect at the start of your next billing period; you keep your current plan&rsquo;s limits until then.</LI>
-                <LI><Strong>Taxes.</Strong> Prices are exclusive of applicable taxes unless stated otherwise; you are responsible for any taxes due.</LI>
+                <LI><Strong>You pay your provider, not us.</Strong> Any costs for AI usage are billed directly to you by your chosen AI provider under your own account and that provider&rsquo;s pricing and terms. We do not mark up, collect, or receive any portion of those charges.</LI>
+                <LI><Strong>Usage tracking.</Strong> We record token usage for the AI tasks you run for product analytics and to operate the Service. This is measurement only and does not result in any charge from us.</LI>
+                <LI><Strong>Fair use.</Strong> We may apply reasonable rate limits to keep the Service available and to prevent abuse.</LI>
             </UL>
             <P>
-                You can manage, change, or cancel your subscription and download invoices at any time from the
-                billing section or the Stripe customer portal. Cancellation stops future renewals; you retain
-                access to paid features until the end of the period you have already paid for. Refunds are
-                governed by our <A href="/refunds">Refund Policy</A>.
+                You are responsible for monitoring and managing usage and any charges on your AI provider account.
+                We are not responsible for fees charged by your AI provider.
             </P>
 
-            <H2>8. Changes to the Service and pricing</H2>
+            <H2>8. Changes to the Service</H2>
             <P>
                 We are actively developing {LEGAL_COMPANY} and may add, change, or remove features at any time.
-                We may change plan pricing or the contents of a plan; for paid subscribers, price changes
-                affecting your current plan will take effect at your next renewal after we provide reasonable
-                notice. Continuing to use the Service after a change takes effect constitutes acceptance.
+                The Service is currently provided free of charge; if we ever introduce paid features, we will
+                provide reasonable notice and they will not apply to you without your consent. Continuing to use
+                the Service after a change takes effect constitutes acceptance.
             </P>
 
             <H2>9. Intellectual property</H2>
@@ -121,10 +125,10 @@ export default function TermsPage() {
 
             <H2>10. Third-party services</H2>
             <P>
-                The Service relies on third parties, including Google (sign-in), Stripe (payments), and AI
-                providers (Google Gemini, xAI, and DeepSeek), as well as our hosting and infrastructure
-                providers. Your use of those services may be subject to their own terms, and we are not
-                responsible for their acts or omissions.
+                The Service relies on third parties, including Google (sign-in) and the AI providers whose API
+                keys you connect (such as Anthropic, OpenAI, Google Gemini, xAI, and DeepSeek), as well as our
+                hosting and infrastructure providers. Your use of those services is subject to their own terms,
+                and we are not responsible for their acts or omissions.
             </P>
 
             <H2>11. Disclaimers</H2>

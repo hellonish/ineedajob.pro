@@ -220,7 +220,13 @@ class ReachoutService:
     ) -> ReachoutValidationResult:
         """Validate and normalize pre-gated search results with the structured LLM."""
 
-        response = inference.validate_reachout_candidates(self.llm, reachout_input, search_plan, gated_results)
+        try:
+            response = inference.validate_reachout_candidates(self.llm, reachout_input, search_plan, gated_results)
+        except Exception as exc:
+            logger.warning("reachout candidate validation LLM call failed: %s", exc)
+            return ReachoutValidationResult(
+                warnings=["Candidate validation failed — skipping LLM gate. Raw search results omitted."]
+            )
         warnings = dedupe_warning_strings([*response.validation.warnings, *response.warnings])
         return response.validation.model_copy(update={"warnings": warnings})
 

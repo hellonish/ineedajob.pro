@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/utils/store';
 import { api, UserProfile, ProfileFileListResponse, type ProfileFileType, isApiError } from '@/utils/api';
+import { profileCache } from '@/utils/cache';
 import Header from '@/components/Header';
 import { usePageUnloadWarning } from '@/hooks/usePageUnloadWarning';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -120,9 +121,20 @@ function ProfilePageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadCompletedAt]);
 
-    const loadProfile = async () => {
+    const loadProfile = async (invalidate = false) => {
+        if (invalidate) profileCache.invalidate('profile');
+
+        // Serve from cache immediately to avoid blank loading state on revisit
+        const cached = profileCache.get('profile') as UserProfile | null;
+        if (cached) {
+            setProfile(cached);
+            setAdditionalContext(cached.additional_context || '');
+            setLoading(false);
+        }
+
         try {
             const data = await api.getProfile();
+            profileCache.set('profile', data);
             setProfile(data);
             setAdditionalContext(data.additional_context || '');
         } catch (error) {
@@ -153,7 +165,7 @@ function ProfilePageInner() {
         if (!deleteModal.fileId) return;
         try {
             await api.deleteProfileFileById(deleteModal.fileId);
-            await Promise.all([loadProfile(), loadFiles()]);
+            await Promise.all([loadProfile(true), loadFiles()]);
         } catch {
             alert('Failed to delete file');
         } finally {
@@ -183,7 +195,7 @@ function ProfilePageInner() {
         setUnifying(true);
         try {
             await api.createUnifiedProfile();
-            await loadProfile();
+            await loadProfile(true); // invalidate cache after unify
         } catch (err) {
             if (isApiError(err)) {
                 console.error("API error:", err.message);
@@ -197,6 +209,7 @@ function ProfilePageInner() {
         setSavingContext(true);
         try {
             await api.updateAdditionalContext(additionalContext);
+            profileCache.invalidate('profile'); // profile changed, bust cache
             setContextSaved(true);
             setTimeout(() => setContextSaved(false), 2000);
         } catch {

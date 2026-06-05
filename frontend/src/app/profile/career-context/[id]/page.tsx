@@ -24,7 +24,7 @@ export default function CareerContextDocPage() {
     const isNew = id === 'new';
 
     const { isAuthenticated, _hasHydrated } = useStore();
-    const { createDoc, updateDoc, deleteDoc, getDoc, hydrated } = useCareerDocs();
+    const { createDoc, updateDoc, persistDoc, deleteDoc, getDoc, hydrated } = useCareerDocs();
 
     const [doc, setDoc] = useState<CareerDoc | null>(null);
     const [title, setTitle] = useState('Untitled');
@@ -93,7 +93,14 @@ export default function CareerContextDocPage() {
         return () => window.removeEventListener('keydown', handler);
     }, [handleSave]);
 
-    // Auto-save on content or title change (debounced 2s)
+    // Persist to localStorage immediately on every change (crash-safe, no re-render)
+    useEffect(() => {
+        if (!docIdRef.current || !hydrated || !doc) return;
+        persistDoc(docIdRef.current, { title: titleRef.current, content });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [content, title]);
+
+    // Debounced state sync + "last saved" UI indicator (2s)
     const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
         if (!docIdRef.current || !hydrated || !doc) return;
@@ -223,9 +230,6 @@ export default function CareerContextDocPage() {
                 <CareerContextEditor
                     value={content}
                     onChange={setContent}
-                    onSave={handleSave}
-                    saving={saving}
-                    saved={saved}
                     placeholder="Start writing…&#10;&#10;Paste any Markdown and it formats automatically."
                     fullPage
                 />

@@ -50,10 +50,10 @@ MarkupSafe==3.0.3
 mdurl==0.1.2
 multidict==6.7.0
 nodeenv==1.10.0
-numpy==1.26.3
+# numpy removed — not used in api/ or engine/
 openai==2.15.0
 anthropic>=0.40.0
-pandas==2.3.3
+# pandas removed — not used in api/ or engine/
 passlib==1.7.4
 platformdirs==4.5.1
 pre_commit==4.5.1
@@ -100,7 +100,5 @@ uvicorn==0.40.0
 virtualenv==20.36.1
 websockets==16.0
 yarl==1.22.0
-scipy==1.11.4
-scikit-learn==1.4.2
-tensorflow==2.16.1
+# scipy, scikit-learn, tensorflow removed — not used in api/ or engine/
 slowapi==0.1.9

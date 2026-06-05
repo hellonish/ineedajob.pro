@@ -90,6 +90,12 @@ export default function LandingHero({ onGoogleLogin }: LandingHeroProps) {
             <div style={{ fontFamily: fontBody, fontSize: 13, color: BRUTAL.ink3 }}>
               No card · 2-min setup · 100% free
             </div>
+            <div style={{ fontFamily: fontBody, fontSize: 12, color: BRUTAL.ink3, lineHeight: 1.5, maxWidth: 360 }}>
+              By continuing, you agree to our{' '}
+              <a href="/terms" style={{ color: BRUTAL.ink2, textDecoration: 'underline' }}>Terms of Service</a>{' '}
+              and{' '}
+              <a href="/privacy" style={{ color: BRUTAL.ink2, textDecoration: 'underline' }}>Privacy Policy</a>.
+            </div>
           </motion.div>
         </div>
 

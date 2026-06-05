@@ -81,6 +81,12 @@ export default function LandingCTA({ onGoogleLogin }: { onGoogleLogin: () => voi
           <span style={{ fontFamily: fontBody, fontSize: 12, color: BRUTAL.ink3, textAlign: 'center' }}>
             Your data stays yours
           </span>
+          <span style={{ fontFamily: fontBody, fontSize: 12, color: BRUTAL.ink3, textAlign: 'center', lineHeight: 1.5 }}>
+            By continuing, you agree to our{' '}
+            <a href="/terms" style={{ color: BRUTAL.ink2, textDecoration: 'underline' }}>Terms</a>{' '}
+            and{' '}
+            <a href="/privacy" style={{ color: BRUTAL.ink2, textDecoration: 'underline' }}>Privacy Policy</a>.
+          </span>
         </div>
       </motion.div>
 

@@ -43,7 +43,8 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     joblens_sessions = relationship("JobLensSession", back_populates="user", cascade="all, delete-orphan")
     profile_files = relationship("ProfileFile", back_populates="user", cascade="all, delete-orphan")
-    subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    llm_keys = relationship("UserLLMKey", back_populates="user", cascade="all, delete-orphan")
+    llm_config = relationship("UserLLMConfig", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class Job(Base):
@@ -200,109 +201,51 @@ class CompanyCache(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
 
 
-# ── Billing tables ────────────────────────────────────────────────────────────
-
-class Plan(Base):
-    """Static plan catalogue. Seeded once at startup — do not mutate at runtime."""
-
-    __tablename__ = "plans"
-
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    code = Column(String, unique=True, nullable=False)          # free|starter|pro|power
-    name = Column(String, nullable=False)
-    price_cents = Column(Integer, nullable=False, default=0)
-    stripe_price_id = Column(String, nullable=True)             # None for free tier
-    monthly_credits = Column(Integer, nullable=False)
-    # daily_caps shape: {"actions": N} for Free; {"job_analysis": N, "cover_letter": N} for paid
-    daily_caps = Column(JSON, nullable=False)
-    weekly_caps = Column(JSON, nullable=True)                   # None for Free
-    profile_build_daily_cap = Column(Integer, nullable=False, default=1)
-    upload_daily_cap = Column(Integer, nullable=False, default=8)
-    per_min_burst = Column(Integer, nullable=False, default=30) # in credits
-
-
-class Subscription(Base):
-    """One row per user — the user's current plan, Stripe ids, and period dates."""
-
-    __tablename__ = "subscriptions"
-
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, unique=True)
-    plan_id = Column(String(36), ForeignKey("plans.id"), nullable=False)
-    stripe_customer_id = Column(String, nullable=True, index=True)
-    stripe_subscription_id = Column(String, nullable=True, index=True)
-    # status: trialing | active | past_due | canceled
-    status = Column(String, nullable=False, default="active")
-    cancel_at_period_end = Column(Boolean, nullable=False, default=False)
-    current_period_start = Column(DateTime, nullable=True)
-    current_period_end = Column(DateTime, nullable=True)        # used for Free lazy monthly reset
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship("User", back_populates="subscription")
-    plan = relationship("Plan")
-
-
-class CreditLedger(Base):
-    """Append-only credit ledger. Balance = SUM(delta) WHERE user_id = ?.
-    NEVER update a row. Always insert a new one.
-    """
-
-    __tablename__ = "credit_ledger"
-
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    delta = Column(Integer, nullable=False)         # positive = credit in, negative = credit out
-    # kind: grant | topup | reserve | refund | expire
-    kind = Column(String, nullable=False)
-    task_type = Column(String, nullable=True)       # job_analysis|cover_letter|profile_build|reachout
-    ref = Column(String, nullable=False, index=True)  # idempotency key
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # (ref, kind) must be unique — prevents double-processing the same event.
-    __table_args__ = (UniqueConstraint("ref", "kind", name="uq_ledger_ref_kind"),)
-
-
 class UsageEvent(Base):
-    """One row per LLM-backed task (charged or free). Source of truth for margin analytics."""
+    """One row per LLM-backed task. Source of truth for usage analytics."""
 
     __tablename__ = "usage_events"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     task_type = Column(String, nullable=False)
-    provider = Column(String, nullable=False, default="grok")
-    model = Column(String, nullable=False, default="grok-3")
+    provider = Column(String, nullable=False, default="unknown")
+    model = Column(String, nullable=False, default="unknown")
     input_tokens = Column(Integer, nullable=False, default=0)
     output_tokens = Column(Integer, nullable=False, default=0)
-    raw_cost_usd = Column(Float, nullable=False, default=0.0)   # what WE paid the provider
-    credits_charged = Column(Integer, nullable=False, default=0) # what the USER was charged
-    failed = Column(Boolean, nullable=False, default=False)      # True if task failed (refunded)
-    ref = Column(String, nullable=True, index=True)             # ties back to the reservation
+    raw_cost_usd = Column(Float, nullable=False, default=0.0)
+    credits_charged = Column(Integer, nullable=False, default=0)
+    failed = Column(Boolean, nullable=False, default=False)
+    ref = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-class RateWindow(Base):
-    """Fixed-window rate-limit counters. SQLite MVP — swap for Redis at scale."""
-
-    __tablename__ = "rate_windows"
+class UserLLMKey(Base):
+    """Per-user encrypted API keys for BYOK LLM providers."""
+    __tablename__ = "user_llm_keys"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    # key examples: "daily:job_analysis:2026-06-01" | "daily:actions:2026-06-01" | "min:job_analysis:27543210"
-    window_key = Column(String, nullable=False)
-    count = Column(Integer, nullable=False, default=0)
-    limit = Column(Integer, nullable=False)
-    resets_at = Column(DateTime, nullable=False)
+    provider = Column(String(32), nullable=False)       # anthropic|openai|gemini|xai|deepseek
+    encrypted_key = Column(Text, nullable=False)         # Fernet ciphertext
+    key_last4 = Column(String(4), nullable=True)         # masked display
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (UniqueConstraint("user_id", "window_key", name="uq_user_window"),)
+    user = relationship("User", back_populates="llm_keys")
+
+    __table_args__ = (UniqueConstraint("user_id", "provider", name="uq_user_llm_provider"),)
 
 
-class ProcessedWebhook(Base):
-    """Stripe webhook idempotency store. If stripe_event_id exists, skip re-processing."""
-
-    __tablename__ = "processed_webhooks"
+class UserLLMConfig(Base):
+    """Per-user model selection per task group (cover_letter, job_analysis, profile)."""
+    __tablename__ = "user_llm_config"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    stripe_event_id = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    # group_models shape: {"cover_letter": {"provider": "...", "model": "..."}, ...}
+    group_models = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="llm_config")

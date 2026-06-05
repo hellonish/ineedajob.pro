@@ -349,7 +349,182 @@ class DeepSeekClient:
             return response_model.model_validate_json(repair_content)
 
 
+class GeminiClient:
+    """Google Gemini structured-output client via instructor (OpenAI-compat path)."""
+
+    _BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    _API_KEY_ENV = "GEMINI_API_KEY"
+    _DEFAULT_MODEL = "gemini-2.5-flash"
+    _DEFAULT_MAX_TOKENS = 8192
+    max_output_tokens = 8192
+
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+        load_dotenv()
+        key = api_key or os.getenv(self._API_KEY_ENV)
+        if not key:
+            raise ValueError(f"{self._API_KEY_ENV} is required in .env or the environment.")
+        self.model = model or self._DEFAULT_MODEL
+        self._client = instructor.from_openai(
+            OpenAI(base_url=self._BASE_URL, api_key=key, timeout=120.0),
+            mode=instructor.Mode.JSON,
+        )
+        self.collector: Optional[UsageCollector] = None
+
+    def complete(
+        self,
+        response_model: Type[Any],
+        messages: List[Dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: Optional[int] = None,
+        max_retries: int = 2,
+        step: str = "",
+    ) -> Any:
+        t0 = time.perf_counter()
+
+        def _call():
+            return self._client.chat.completions.create_with_completion(
+                model=self.model,
+                response_model=response_model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens or self._DEFAULT_MAX_TOKENS,
+                max_retries=max_retries,
+                strict=False,
+            )
+
+        result, raw_completion = _retry_call(_call)
+        duration_ms = (time.perf_counter() - t0) * 1000
+
+        if self.collector is not None:
+            usage_data = getattr(raw_completion, "usage", None)
+            in_tok = getattr(usage_data, "prompt_tokens", 0) or 0
+            out_tok = getattr(usage_data, "completion_tokens", 0) or 0
+            u = Usage(input_tokens=in_tok, output_tokens=out_tok, provider="gemini", model=self.model)
+            self.collector.add(u)
+            if step:
+                self.collector.record_step(step, duration_ms, u)
+
+        return result
+
+
+# ─── OpenAI — instructor path ─────────────────────────────────────────────────
+
+class OpenAIClient:
+    """OpenAI structured-output client via instructor."""
+
+    _API_KEY_ENV = "OPENAI_API_KEY"
+    _DEFAULT_MODEL = "gpt-4o-mini"
+    _DEFAULT_MAX_TOKENS = 8192
+    max_output_tokens = 16384
+
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+        load_dotenv()
+        key = api_key or os.getenv(self._API_KEY_ENV)
+        if not key:
+            raise ValueError(f"{self._API_KEY_ENV} is required in .env or the environment.")
+        self.model = model or self._DEFAULT_MODEL
+        self._client = instructor.from_openai(
+            OpenAI(api_key=key, timeout=120.0),
+            mode=instructor.Mode.JSON,
+        )
+        self.collector: Optional[UsageCollector] = None
+
+    def complete(
+        self,
+        response_model: Type[Any],
+        messages: List[Dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: Optional[int] = None,
+        max_retries: int = 2,
+        step: str = "",
+    ) -> Any:
+        t0 = time.perf_counter()
+
+        def _call():
+            return self._client.chat.completions.create_with_completion(
+                model=self.model,
+                response_model=response_model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens or self._DEFAULT_MAX_TOKENS,
+                max_retries=max_retries,
+                strict=False,
+            )
+
+        result, raw_completion = _retry_call(_call)
+        duration_ms = (time.perf_counter() - t0) * 1000
+
+        if self.collector is not None:
+            usage_data = getattr(raw_completion, "usage", None)
+            in_tok = getattr(usage_data, "prompt_tokens", 0) or 0
+            out_tok = getattr(usage_data, "completion_tokens", 0) or 0
+            u = Usage(input_tokens=in_tok, output_tokens=out_tok, provider="openai", model=self.model)
+            self.collector.add(u)
+            if step:
+                self.collector.record_step(step, duration_ms, u)
+
+        return result
+
+
+# ─── Anthropic — instructor via anthropic SDK ─────────────────────────────────
+
+class AnthropicClient:
+    """Anthropic (Claude) structured-output client via instructor."""
+
+    _API_KEY_ENV = "ANTHROPIC_API_KEY"
+    _DEFAULT_MODEL = "claude-haiku-4-5"
+    _DEFAULT_MAX_TOKENS = 8192
+    max_output_tokens = 8192
+
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+        load_dotenv()
+        key = api_key or os.getenv(self._API_KEY_ENV)
+        if not key:
+            raise ValueError(f"{self._API_KEY_ENV} is required in .env or the environment.")
+        self.model = model or self._DEFAULT_MODEL
+        self._client = instructor.from_anthropic(anthropic.Anthropic(api_key=key))
+        self.collector: Optional[UsageCollector] = None
+
+    def complete(
+        self,
+        response_model: Type[Any],
+        messages: List[Dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: Optional[int] = None,
+        max_retries: int = 2,
+        step: str = "",
+    ) -> Any:
+        t0 = time.perf_counter()
+
+        def _call():
+            return self._client.messages.create_with_completion(
+                model=self.model,
+                response_model=response_model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens or self._DEFAULT_MAX_TOKENS,
+                max_retries=max_retries,
+            )
+
+        result, raw = _retry_call(_call)
+        duration_ms = (time.perf_counter() - t0) * 1000
+
+        if self.collector is not None:
+            usage_data = getattr(raw, "usage", None)
+            in_tok = getattr(usage_data, "input_tokens", 0) or 0
+            out_tok = getattr(usage_data, "output_tokens", 0) or 0
+            u = Usage(input_tokens=in_tok, output_tokens=out_tok, provider="anthropic", model=self.model)
+            self.collector.add(u)
+            if step:
+                self.collector.record_step(step, duration_ms, u)
+
+        return result
+
+
 # ─── Convenience constants ────────────────────────────────────────────────────
 
 DEFAULT_XAI_MODEL = XAIClient._DEFAULT_MODEL
 DEFAULT_DEEPSEEK_MODEL = DeepSeekClient._DEFAULT_MODEL
+DEFAULT_GEMINI_MODEL = GeminiClient._DEFAULT_MODEL
+DEFAULT_OPENAI_MODEL = OpenAIClient._DEFAULT_MODEL
+DEFAULT_ANTHROPIC_MODEL = AnthropicClient._DEFAULT_MODEL
