@@ -12,7 +12,7 @@ from ..schemas import (
     JDToneAnalysisResponse,
 )
 from ..models import User, Job, CoverLetter, UserProfile
-from ..llm import get_llm
+from ..llm import get_llm, resolve_and_build
 from ..billing.gateway import MeterContext, metered
 from ..limiter import limiter
 from engine.joblens.company_intel import CompanyIntelInput, CompanyIntelService
@@ -47,13 +47,13 @@ def _parse_jd_text(jd_text: str, llm, company_name: str = None) -> dict:
 async def analyze_jd(
     request: Request,
     data: CoverLetterCreate,
-    ctx: MeterContext = Depends(metered("cover_letter_tone", charge=False)),
+    ctx: MeterContext = Depends(metered("cover_letter_tone")),
     db: Session = Depends(get_db),
 ):
     """Analyze a job description and recommend the best cover letter mode."""
     from engine.cover_letter import CoverLetterService
 
-    llm = get_llm("cover_letter_tone", collector=ctx.collector)
+    llm = resolve_and_build(db, ctx.user_id, "cover_letter_tone", collector=ctx.collector)
     job_posting = {}
     if data.job_id:
         job = db.query(Job).filter(
@@ -91,13 +91,13 @@ async def analyze_jd(
 async def create_cover_letter(
     request: Request,
     data: CoverLetterCreate,
-    ctx: MeterContext = Depends(metered("cover_letter", charge=True)),
+    ctx: MeterContext = Depends(metered("cover_letter")),
     db: Session = Depends(get_db),
 ):
     """Generate a cover letter (costs 4 credits)."""
     from engine.cover_letter import generate_cover_letter
 
-    llm = get_llm("cover_letter", collector=ctx.collector)
+    llm = resolve_and_build(db, ctx.user_id, "cover_letter", collector=ctx.collector)
     job = None
     job_posting = {}
 
