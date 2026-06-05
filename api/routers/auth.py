@@ -3,7 +3,6 @@ Authentication Router - Google OAuth + User Settings
 """
 
 import os
-import shutil
 import uuid
 from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
@@ -16,8 +15,8 @@ from ..auth import oauth, create_access_token, get_or_create_user, get_current_u
 from ..schemas import TokenResponse, UserResponse, UserUpdate
 from ..models import User
 from ..limiter import limiter
+from .. import storage
 
-AVATAR_DIR = "api/uploads/avatars"
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
 
@@ -153,22 +152,15 @@ async def upload_avatar(
     if len(contents) > MAX_AVATAR_SIZE:
         raise HTTPException(status_code=400, detail="Image must be under 5 MB.")
 
-    os.makedirs(AVATAR_DIR, exist_ok=True)
-
-    # Delete old local avatar if present
-    if current_user.profile_picture and current_user.profile_picture.startswith("/uploads/avatars/"):
-        old_path = "api" + current_user.profile_picture
-        if os.path.exists(old_path):
-            os.remove(old_path)
+    # Delete old Supabase avatar if present
+    if current_user.profile_picture and "/object/public/avatars/" in current_user.profile_picture:
+        storage.delete_avatar(current_user.profile_picture)
 
     ext = os.path.splitext(file.filename or "avatar")[1] or ".jpg"
-    filename = f"{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
-    file_path = os.path.join(AVATAR_DIR, filename)
+    storage_path = f"{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
+    public_url = storage.upload_avatar(storage_path, contents, file.content_type or "image/jpeg")
 
-    with open(file_path, "wb") as f:
-        f.write(contents)
-
-    current_user.profile_picture = f"/uploads/avatars/{filename}"
+    current_user.profile_picture = public_url
     db.commit()
     db.refresh(current_user)
     return _build_user_response(current_user, db)
@@ -180,10 +172,8 @@ async def delete_avatar(
     db: Session = Depends(get_db),
 ):
     """Remove the user's profile picture."""
-    if current_user.profile_picture and current_user.profile_picture.startswith("/uploads/avatars/"):
-        old_path = "api" + current_user.profile_picture
-        if os.path.exists(old_path):
-            os.remove(old_path)
+    if current_user.profile_picture and "/object/public/avatars/" in current_user.profile_picture:
+        storage.delete_avatar(current_user.profile_picture)
 
     current_user.profile_picture = None
     db.commit()

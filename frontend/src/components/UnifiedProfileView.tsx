@@ -228,16 +228,15 @@ export default function UnifiedProfileView({ profile, dim }: UnifiedProfileViewP
                                 <div>
                                     <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{job.job_title}</div>
                                     <div style={{ fontSize: 12.5, color: 'var(--text-2)', marginBottom: 8 }}>{job.company_name}</div>
-                                    {job.description && (
-                                        <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: 6 }}>
-                                            {formatDescription(job.description)}
-                                        </div>
-                                    )}
-                                    {job.achievements && job.achievements.length > 0 && (
+                                    {job.achievements && job.achievements.length > 0 ? (
                                         <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--text-2)', fontSize: 12.5, lineHeight: 1.7 }}>
                                             {job.achievements.map((item, j) => <li key={j}>{item}</li>)}
                                         </ul>
-                                    )}
+                                    ) : job.description ? (
+                                        <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: 6 }}>
+                                            {formatDescription(job.description)}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                         )) : <Empty>No work experience found.</Empty>}

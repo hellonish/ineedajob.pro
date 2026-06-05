@@ -4,17 +4,16 @@ Profile Router
 
 import os
 import uuid
-import shutil
 import math
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
 from ..database import get_db
 from ..auth import get_current_user
-from ..llm import get_llm
+from ..llm import get_llm, resolve_and_build
 from ..billing.gateway import MeterContext, metered
 from ..limiter import limiter
 from ..schemas import (
@@ -27,13 +26,12 @@ from ..schemas import (
     AdditionalContextUpdate,
 )
 from ..models import User, UserProfile, ProfileFile
+from .. import storage
 
 from engine.profile import parse_profile_upload
 from engine.profile.unification import create_unified_profile, merge_profile_sources
 
 router = APIRouter(prefix="/api/profile", tags=["Profile"])
-
-UPLOAD_DIR = "api/uploads"
 
 VALID_FILE_TYPES = ["resume", "linkedin", "portfolio", "other"]
 ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".txt", ".doc", ".docx"}
@@ -76,7 +74,7 @@ async def upload_file(
     file: UploadFile = File(...),
     type: str = Form(...),
     additional_context: Optional[str] = Form(None),
-    ctx: MeterContext = Depends(metered("profile_upload", charge=False)),
+    ctx: MeterContext = Depends(metered("profile_upload")),
     db: Session = Depends(get_db),
 ):
     """Upload and parse a profile file (free, but daily-capped per plan)."""
@@ -95,11 +93,8 @@ async def upload_file(
         ctx.settle_failure()
         raise HTTPException(status_code=429, detail="Maximum active profile files (12) reached. Delete some before uploading more.")
 
-    user_dir = os.path.join(UPLOAD_DIR, ctx.user_id)
-    os.makedirs(user_dir, exist_ok=True)
-
     unique_name = f"{uuid.uuid4().hex}{file_ext}"
-    file_path = os.path.join(user_dir, unique_name)
+    storage_path = f"{ctx.user_id}/{unique_name}"
 
     file_content = await file.read()
     file_size = len(file_content)
@@ -108,8 +103,8 @@ async def upload_file(
         ctx.settle_failure()
         raise HTTPException(status_code=413, detail=f"File too large ({file_size} bytes). Max: {MAX_FILE_SIZE // (1024*1024)} MB")
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(file_content)
+    # Upload to Supabase Storage
+    storage.upload_file(storage_path, file_content, file.content_type or "application/octet-stream")
 
     parsed_data = None
     source_label = _parse_source_label(type, file_ext)
@@ -120,18 +115,17 @@ async def upload_file(
                 filename=file.filename or f"profile{file_ext}",
                 content_type=file.content_type or "application/octet-stream",
                 source_label=source_label,
-                llm=get_llm("profile", collector=ctx.collector),
+                llm=resolve_and_build(db, ctx.user_id, "profile", collector=ctx.collector),
             )
         except Exception as e:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            storage.delete_file(storage_path)
             ctx.settle_failure()
             raise HTTPException(status_code=500, detail=f"Parsing failed: {str(e)}")
 
     profile_file = ProfileFile(
         user_id=ctx.user_id,
         filename=file.filename,
-        file_path=file_path,
+        file_path=storage_path,
         file_type=type,
         file_size=file_size,
         parsed_data=parsed_data,
@@ -144,17 +138,17 @@ async def upload_file(
     if type == "resume":
         profile = db.query(UserProfile).filter(UserProfile.user_id == ctx.user_id).first()
         if profile and not profile.resume_path:
-            profile.resume_path = file_path
+            profile.resume_path = storage_path
             profile.resume_data = parsed_data
     elif type == "linkedin":
         profile = db.query(UserProfile).filter(UserProfile.user_id == ctx.user_id).first()
         if profile and not profile.linkedin_path:
-            profile.linkedin_path = file_path
+            profile.linkedin_path = storage_path
             profile.linkedin_data = parsed_data
     elif type == "portfolio":
         profile = db.query(UserProfile).filter(UserProfile.user_id == ctx.user_id).first()
         if profile and not profile.portfolio_path:
-            profile.portfolio_path = file_path
+            profile.portfolio_path = storage_path
             profile.portfolio_data = parsed_data
 
     db.commit()
@@ -228,8 +222,7 @@ async def delete_file(
     if not profile_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    if profile_file.file_path and os.path.exists(profile_file.file_path):
-        os.remove(profile_file.file_path)
+    storage.delete_file(profile_file.file_path)
 
     db.delete(profile_file)
     db.commit()
@@ -277,15 +270,11 @@ async def download_file(
     if not profile_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    if not profile_file.file_path or not os.path.exists(profile_file.file_path):
-        raise HTTPException(status_code=404, detail="File not found on disk")
+    if not profile_file.file_path:
+        raise HTTPException(status_code=404, detail="File not found")
 
-    safe_filename = os.path.basename(profile_file.filename) if profile_file.filename else f"file_{profile_file.id}"
-    return FileResponse(
-        profile_file.file_path,
-        filename=safe_filename,
-        media_type="application/octet-stream",
-    )
+    signed_url = storage.get_signed_url(profile_file.file_path)
+    return RedirectResponse(url=signed_url, status_code=307)
 
 
 @router.get("/file/{file_type}")
@@ -308,17 +297,18 @@ async def get_profile_file_legacy(
     elif file_type == "portfolio":
         file_path = profile.portfolio_path
 
-    if not file_path or not os.path.exists(file_path):
+    if not file_path:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return FileResponse(file_path)
+    signed_url = storage.get_signed_url(file_path)
+    return RedirectResponse(url=signed_url, status_code=307)
 
 
 @router.post("/unified", response_model=UserProfileResponse)
 @limiter.limit("3/minute")
 async def create_unified(
     request: Request,
-    ctx: MeterContext = Depends(metered("profile_build", charge=True)),
+    ctx: MeterContext = Depends(metered("profile_build")),
     db: Session = Depends(get_db),
 ):
     """Create Unified Profile from uploaded files (costs 30 credits)."""
@@ -357,7 +347,7 @@ async def create_unified(
         raise HTTPException(status_code=400, detail="No files uploaded to unify")
 
     try:
-        llm = get_llm("profile", collector=ctx.collector)
+        llm = resolve_and_build(db, ctx.user_id, "profile", collector=ctx.collector)
 
         global_ctx = profile.additional_context
         per_file_ctx = {}
@@ -434,20 +424,17 @@ async def delete_file_legacy(
     old_path = None
     if file_type == "resume":
         old_path = profile.resume_path
-        if old_path and os.path.exists(old_path):
-            os.remove(old_path)
+        storage.delete_file(old_path)
         profile.resume_path = None
         profile.resume_data = None
     elif file_type == "linkedin":
         old_path = profile.linkedin_path
-        if old_path and os.path.exists(old_path):
-            os.remove(old_path)
+        storage.delete_file(old_path)
         profile.linkedin_path = None
         profile.linkedin_data = None
     elif file_type == "portfolio":
         old_path = profile.portfolio_path
-        if old_path and os.path.exists(old_path):
-            os.remove(old_path)
+        storage.delete_file(old_path)
         profile.portfolio_path = None
         profile.portfolio_data = None
 
