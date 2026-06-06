@@ -11,11 +11,12 @@ def build_company_intel_messages(
     pages: Sequence[FetchedCompanyPage],
     response_schema: Mapping[str, Any] | None = None,
     response_contract_name: str = "CompanyIntelResult",
+    include_schema_in_prompt: bool = True,
 ) -> List[Dict[str, str]]:
     """Build messages that ask the LLM for typed company intelligence."""
 
     return [
-        {"role": "system", "content": _system_prompt(response_schema, response_contract_name)},
+        {"role": "system", "content": _system_prompt(response_schema, response_contract_name, include_schema_in_prompt)},
         {"role": "user", "content": _user_prompt(company_input, pages, response_contract_name)},
     ]
 
@@ -23,10 +24,15 @@ def build_company_intel_messages(
 def _system_prompt(
     response_schema: Mapping[str, Any] | None = None,
     response_contract_name: str = "CompanyIntelResult",
+    include_schema_in_prompt: bool = True,
 ) -> str:
     """Return the company-intel extraction contract."""
 
-    schema = json.dumps(response_schema or CompanyIntelLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(response_schema or CompanyIntelLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema:\n{schema}"
+    else:
+        schema_block = ""
     return f"""
 You are `company_intel`, a research module that converts official company pages into normalized company and engineering intelligence.
 
@@ -68,9 +74,7 @@ Common error checks before final answer:
 - No internal tech-stack claims from purely customer-facing product descriptions unless the page explicitly names the technology.
 - No missing evidence for mission, stage/scale, engineering topics, or technical signals when those are populated.
 - `input` in the output must mirror the supplied input values.
-
-Structured output schema:
-{schema}
+{schema_block}
 """.strip()
 
 

@@ -155,7 +155,10 @@ def break_down_job_description(
     """Normalize a raw job description into typed matching components."""
     return llm.complete(
         response_model=JobDescriptionBreakdownLLMResponse,
-        messages=build_job_description_breakdown_messages(job_input),
+        messages=build_job_description_breakdown_messages(
+            job_input,
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
+        ),
         temperature=0.0,
         max_tokens=3000,
         step="job_description",
@@ -177,6 +180,7 @@ def extract_company_intel(
             pages,
             response_schema=CompanyIntelLLMResponse.model_json_schema(),
             response_contract_name="CompanyIntelLLMResponse",
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
         ),
         temperature=0.0,
         max_tokens=4000,
@@ -197,6 +201,7 @@ def match_profile_to_job(
             request,
             response_schema=JobMatchLLMResponse.model_json_schema(),
             response_contract_name="JobMatchLLMResponse",
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
         ),
         temperature=0.0,
         max_tokens=24000,
@@ -214,6 +219,7 @@ def score_job_match(
         messages=build_job_match_score_messages(
             request,
             response_schema=JobMatchScoreLLMResponse.model_json_schema(),
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
         ),
         temperature=0.0,
         max_tokens=8000,
@@ -233,6 +239,7 @@ def generate_resume_actions(
             request,
             score,
             response_schema=ResumeActionsLLMResponse.model_json_schema(),
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
         ),
         temperature=0.3,
         max_tokens=12000,
@@ -249,7 +256,10 @@ def plan_reachout_queries(
     """Create a targeted public-search plan for finding reachout contacts."""
     return llm.complete(
         response_model=ReachoutQueryPlanLLMResponse,
-        messages=build_query_planner_messages(reachout_input),
+        messages=build_query_planner_messages(
+            reachout_input,
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
+        ),
         temperature=0.4,
         max_tokens=2000,
         step="reachout_query_plan",
@@ -269,7 +279,12 @@ def validate_reachout_candidates(
     capped = gated_results[:_REACHOUT_VALIDATE_RESULT_CAP]
     return llm.complete(
         response_model=ReachoutCandidateValidationLLMResponse,
-        messages=build_candidate_validator_messages(reachout_input, search_plan, capped),
+        messages=build_candidate_validator_messages(
+            reachout_input,
+            search_plan,
+            capped,
+            include_schema_in_prompt=not getattr(llm, 'injects_schema_natively', False),
+        ),
         temperature=0.0,
         max_tokens=8000,
         step="reachout_validate",

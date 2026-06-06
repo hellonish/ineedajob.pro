@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from engine.profile.models import UnifiedProfile
 
-from engine.joblens.job_description.models import JobDescriptionBreakdownResult, RequirementImportance
+from engine.joblens.job_description.models import JobDescriptionBreakdownResult, RequirementImportance, SkillCategory
 
 
 NOISE_STRINGS = {
@@ -93,6 +93,28 @@ class ResumeActionType(str, Enum):
     DELETE = "delete"
 
 
+class EvidenceType(str, Enum):
+    """Closed set of evidence categories."""
+    SKILL = "skill"
+    EXPERIENCE = "experience"
+    PROJECT = "project"
+    EDUCATION = "education"
+    SUMMARY = "summary"
+    AUTHORIZATION = "authorization"
+    LOCATION = "location"
+    OTHER = "other"
+
+
+class ResumeTargetSection(str, Enum):
+    """Resume sections a tailoring action can target."""
+    SUMMARY = "summary"
+    SKILLS = "skills"
+    EXPERIENCE = "experience"
+    PROJECTS = "projects"
+    EDUCATION = "education"
+    OTHER = "other"
+
+
 class ActionPriority(str, Enum):
     """Action priority."""
 
@@ -132,8 +154,8 @@ class EvidenceItem(StrictJobMatchModel):
 
     profile_field: str
     text: str
-    evidence_type: str = Field(description="skill, experience, project, education, summary, authorization, location, or other.")
-    strength: int = Field(default=0, ge=0, le=5, description="0=no evidence, 5=direct production evidence with impact.")
+    evidence_type: EvidenceType
+    strength: int = Field(ge=0, le=5, description="0=no evidence, 5=direct production evidence with impact.")
     explanation: Optional[str] = None
 
 
@@ -150,8 +172,8 @@ class ConstraintMatch(StrictJobMatchModel):
     """Hard constraint comparison."""
 
     constraint: str
-    status: ConstraintStatus = ConstraintStatus.UNKNOWN
-    importance: RequirementImportance = RequirementImportance.IMPORTANT
+    status: ConstraintStatus
+    importance: RequirementImportance
     profile_evidence: List[EvidenceItem] = Field(default_factory=list)
     jd_source_phrases: List[str] = Field(default_factory=list)
     risk_or_gap: Optional[str] = None
@@ -162,11 +184,11 @@ class SkillMatch(StrictJobMatchModel):
 
     jd_skill: str
     normalized_skill: Optional[str] = None
-    category: str = "other"
-    importance: RequirementImportance = RequirementImportance.IMPORTANT
-    match_level: MatchLevel = MatchLevel.UNKNOWN
-    score: float = Field(default=0, ge=0)
-    max_score: float = Field(default=1, gt=0)
+    category: SkillCategory = SkillCategory.OTHER
+    importance: RequirementImportance
+    match_level: MatchLevel
+    score: float = Field(ge=0)
+    max_score: float = Field(gt=0)
     profile_evidence: List[EvidenceItem] = Field(default_factory=list)
     gap: Optional[str] = None
     action_hint: Optional[str] = None
@@ -176,9 +198,9 @@ class ResponsibilityMatch(StrictJobMatchModel):
     """Responsibility-level match explanation."""
 
     target: str
-    importance: RequirementImportance = RequirementImportance.IMPORTANT
-    match_level: MatchLevel = MatchLevel.UNKNOWN
-    evidence_score: int = Field(default=0, ge=0, le=5)
+    importance: RequirementImportance
+    match_level: MatchLevel
+    evidence_score: int = Field(ge=0, le=5)
     profile_evidence: List[EvidenceItem] = Field(default_factory=list)
     gap: Optional[str] = None
     action_hint: Optional[str] = None
@@ -189,12 +211,12 @@ class ResumeAction(StrictJobMatchModel):
 
     action_type: ResumeActionType
     priority: ActionPriority = ActionPriority.MEDIUM
-    target_section: str = Field(description="summary, skills, experience, projects, education, or other.")
+    target_section: ResumeTargetSection
     target_text: Optional[str] = Field(default=None, description="Existing resume/profile text to update, replace, or delete when available.")
     suggested_text: Optional[str] = Field(default=None, description="Suggested truthful replacement/update text. Empty for delete actions.")
     reason: str
-    jd_alignment: List[str] = Field(default_factory=list)
-    profile_evidence: List[EvidenceItem] = Field(default_factory=list)
+    jd_alignment: List[str]
+    profile_evidence: List[EvidenceItem]
     expected_score_impact: Optional[str] = None
 
 
@@ -204,8 +226,8 @@ class JobMatchSummary(StrictJobMatchModel):
     total_score: float = Field(ge=0, le=100)
     match_band: MatchBand
     headline: str
-    strongest_matches: List[str] = Field(default_factory=list)
-    biggest_gaps: List[str] = Field(default_factory=list)
+    strongest_matches: List[str]
+    biggest_gaps: List[str]
     hard_constraint_summary: Optional[str] = None
 
 
@@ -271,11 +293,11 @@ class ResumeActions(StrictJobMatchModel):
         default=None,
         description="Full extracted text of the selected resume. Populated server-side after AI selection; not sent to the LLM.",
     )
-    update_actions: List[ResumeAction] = Field(default_factory=list)
-    replace_actions: List[ResumeAction] = Field(default_factory=list)
-    delete_actions: List[ResumeAction] = Field(default_factory=list)
-    selected_actions: List[ResumeAction] = Field(default_factory=list)
-    warnings: List[str] = Field(default_factory=list)
+    update_actions: List[ResumeAction]
+    replace_actions: List[ResumeAction]
+    delete_actions: List[ResumeAction]
+    selected_actions: List[ResumeAction]
+    warnings: List[str]
 
 
 class ResumeActionsLLMResponse(StrictJobMatchModel):

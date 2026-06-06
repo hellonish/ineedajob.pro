@@ -146,6 +146,16 @@ class ConstraintCategory(str, Enum):
     OTHER = "other"
 
 
+class QualificationCategory(str, Enum):
+    """Category for non-skill qualification requirements."""
+    EXPERIENCE = "experience"
+    EDUCATION = "education"
+    SOFT_SKILL = "soft_skill"
+    LOGISTICS = "logistics"
+    AVAILABILITY = "availability"
+    OTHER = "other"
+
+
 class JobDescriptionInput(StrictJobDescriptionModel):
     """Raw job description supplied for breakdown."""
 
@@ -217,7 +227,7 @@ class QualificationRequirement(StrictJobDescriptionModel):
     """Non-skill qualification or candidate trait."""
 
     text: str
-    category: str = Field(description="experience, education, soft_skill, logistics, availability, or other.")
+    category: QualificationCategory = QualificationCategory.OTHER
     importance: RequirementImportance = RequirementImportance.IMPORTANT
     is_must_have: bool = False
     source_phrases: List[str] = Field(default_factory=list)

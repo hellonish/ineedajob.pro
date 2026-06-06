@@ -370,6 +370,8 @@ class ProfileExtractionResult(StrictProfileModel):
 class ContactInfo(BaseModel):
     """Contact details shown in the unified profile view."""
 
+    model_config = ConfigDict(extra="forbid")
+
     email: Optional[str] = None
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
@@ -380,6 +382,8 @@ class ContactInfo(BaseModel):
 class ProfileBasics(BaseModel):
     """Top-level identity details for the unified profile."""
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str = ""
     title: Optional[str] = None
     summary: Optional[str] = None
@@ -389,6 +393,8 @@ class ProfileBasics(BaseModel):
 
 class UnifiedWorkExperienceItem(BaseModel):
     """Work item rendered by the profile API."""
+
+    model_config = ConfigDict(extra="forbid")
 
     job_title: str = ""
     company_name: str = ""
@@ -403,6 +409,8 @@ class UnifiedWorkExperienceItem(BaseModel):
 class UnifiedEducationItem(BaseModel):
     """Education item rendered by the profile API."""
 
+    model_config = ConfigDict(extra="forbid")
+
     institution: str = ""
     degree: Optional[str] = None
     major: Optional[str] = None
@@ -411,6 +419,8 @@ class UnifiedEducationItem(BaseModel):
 
 class UnifiedProfile(BaseModel):
     """Renderable profile model stored by the profile API."""
+
+    model_config = ConfigDict(extra="forbid")
 
     basics: ProfileBasics = Field(default_factory=ProfileBasics)
     work_experience: List[UnifiedWorkExperienceItem] = Field(default_factory=list)

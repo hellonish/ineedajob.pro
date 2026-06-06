@@ -12,11 +12,14 @@ from .models import (
 )
 
 
-def build_query_planner_messages(reachout_input: ReachoutInput) -> List[Dict[str, str]]:
+def build_query_planner_messages(
+    reachout_input: ReachoutInput,
+    include_schema_in_prompt: bool = True,
+) -> List[Dict[str, str]]:
     """Build messages for the first LLM call: search query planning."""
 
     return [
-        {"role": "system", "content": _query_planner_system_prompt()},
+        {"role": "system", "content": _query_planner_system_prompt(include_schema_in_prompt)},
         {"role": "user", "content": _query_planner_user_prompt(reachout_input)},
     ]
 
@@ -25,19 +28,24 @@ def build_candidate_validator_messages(
     reachout_input: ReachoutInput,
     search_plan: ReachoutSearchPlan,
     gated_results: Sequence[GatedSearchResult],
+    include_schema_in_prompt: bool = True,
 ) -> List[Dict[str, str]]:
     """Build messages for the second LLM call: candidate validation."""
 
     return [
-        {"role": "system", "content": _candidate_validator_system_prompt()},
+        {"role": "system", "content": _candidate_validator_system_prompt(include_schema_in_prompt)},
         {"role": "user", "content": _candidate_validator_user_prompt(reachout_input, search_plan, gated_results)},
     ]
 
 
-def _query_planner_system_prompt() -> str:
+def _query_planner_system_prompt(include_schema_in_prompt: bool = True) -> str:
     """Return the query planner contract."""
 
-    schema = json.dumps(ReachoutQueryPlanLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(ReachoutQueryPlanLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema:\n{schema}"
+    else:
+        schema_block = ""
     return f"""
 You are `reachout_query_planner`, the first LLM call in a two-call public reachout discovery pipeline.
 
@@ -87,16 +95,18 @@ Query strategy:
   - `site:linkedin.com/in "Company Name" "School Name" "United States"`
   - `site:linkedin.com/in "Company Name" "School Name" "software engineer" "United States"`
   - `site:linkedin.com/in "Company Name" "School Name" "recruiter" "United States"` when recruiter contacts are requested.
-
-Structured output schema:
-{schema}
+{schema_block}
 """.strip()
 
 
-def _candidate_validator_system_prompt() -> str:
+def _candidate_validator_system_prompt(include_schema_in_prompt: bool = True) -> str:
     """Return the candidate validation contract."""
 
-    schema = json.dumps(ReachoutCandidateValidationLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(ReachoutCandidateValidationLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema:\n{schema}"
+    else:
+        schema_block = ""
     return f"""
 You are `reachout_candidate_validator`, the second LLM call in a two-call public reachout discovery pipeline.
 
@@ -130,9 +140,7 @@ Normalization rules:
 - Deduplicate by canonical URL and by normalized full name + company.
 - Preserve matched query, source title, and source snippet.
 - Add clear rejection reasons for every rejected result.
-
-Structured output schema:
-{schema}
+{schema_block}
 """.strip()
 
 

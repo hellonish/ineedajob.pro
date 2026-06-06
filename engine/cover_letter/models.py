@@ -2,17 +2,16 @@
 Cover Letter Models - Pydantic schemas for generation, JD analysis, and prompt enhancement.
 """
 
-from typing import Optional, List
-from pydantic import BaseModel, Field
+from typing import Optional, List, Literal
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CoverLetter(BaseModel):
     """Full cover letter output with metadata."""
 
-    mode: str = Field(
-        default="regular",
-        description="Generation mode used (storyline | disruptive | regular | auto | custom)",
-    )
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["regular", "storyline", "disruptive", "auto", "custom"] = "regular"
     mode_label: str = Field(
         default="",
         description="Human-readable label, e.g. 'Auto-Detected: Storyline'",
@@ -44,9 +43,9 @@ class CoverLetter(BaseModel):
 class JDToneAnalysis(BaseModel):
     """Result of analyzing a job description's tone and culture."""
 
-    recommended_mode: str = Field(
-        description="Recommended mode: storyline, disruptive, or regular",
-    )
+    model_config = ConfigDict(extra="forbid")
+
+    recommended_mode: Literal["storyline", "disruptive", "regular"]
     confidence: float = Field(
         ge=0.0, le=1.0, description="Confidence (0-1)",
     )
@@ -56,10 +55,7 @@ class JDToneAnalysis(BaseModel):
     culture_indicators: List[str] = Field(
         default_factory=list, description="Detected culture / vibe markers",
     )
-    formality_level: str = Field(
-        default="formal",
-        description="formal | semi-formal | casual",
-    )
+    formality_level: Literal["formal", "semi-formal", "casual"] = "formal"
     industry: str = Field(default="", description="Detected industry / sector")
     reasoning: str = Field(
         default="", description="Brief explanation of the recommendation",
@@ -69,13 +65,12 @@ class JDToneAnalysis(BaseModel):
 class EnhancedPrompt(BaseModel):
     """Result of enhancing a user's rough prompt."""
 
+    model_config = ConfigDict(extra="forbid")
+
     enhanced_prompt: str = Field(
         description="Detailed, context-aware prompt ready for LLM consumption",
     )
     enhancements_made: List[str] = Field(
         default_factory=list, description="What was improved",
     )
-    suggested_mode: str = Field(
-        default="custom",
-        description="Suggested generation mode based on prompt intent",
-    )
+    suggested_mode: Literal["regular", "storyline", "disruptive", "auto", "custom"] = "custom"

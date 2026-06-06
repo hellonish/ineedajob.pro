@@ -18,11 +18,12 @@ def build_job_match_messages(
     request: JobMatchRequest,
     response_schema: Optional[Mapping[str, Any]] = None,
     response_contract_name: str = "JobMatchLLMResponse",
+    include_schema_in_prompt: bool = True,
 ) -> List[Dict[str, str]]:
     """Build messages that ask the LLM for a typed match result."""
 
     return [
-        {"role": "system", "content": _system_prompt(response_schema, response_contract_name)},
+        {"role": "system", "content": _system_prompt(response_schema, response_contract_name, include_schema_in_prompt)},
         {"role": "user", "content": _user_prompt(request, response_contract_name)},
     ]
 
@@ -41,12 +42,17 @@ def _drop_source_phrases(obj: Any) -> None:
 def _system_prompt(
     response_schema: Optional[Mapping[str, Any]] = None,
     response_contract_name: str = "JobMatchLLMResponse",
+    include_schema_in_prompt: bool = True,
 ) -> str:
     """Return the matching contract."""
 
     # Use the wrapper schema (JobMatchLLMResponse) so the LLM knows to return
     # {"result": {...}, "warnings": [...]} — not the inner JobMatchResult fields at root.
-    schema = json.dumps(response_schema or JobMatchLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(response_schema or JobMatchLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema:\n{schema}"
+    else:
+        schema_block = ""
     return f"""
 You are `job_match`, the second module in a hybrid job-to-profile matching pipeline.
 
@@ -125,9 +131,7 @@ Common error checks before final answer:
 - No hard constraint is silently ignored.
 - The strongest matches and biggest gaps are grounded in detailed match objects.
 - The output is directly usable by a UI and by a later resume editor.
-
-Structured output schema:
-{schema}
+{schema_block}
 """.strip()
 
 
@@ -161,9 +165,14 @@ def _user_prompt(
 def build_job_match_score_messages(
     request: JobMatchRequest,
     response_schema: Optional[Mapping[str, Any]] = None,
+    include_schema_in_prompt: bool = True,
 ) -> List[Dict[str, str]]:
     """Phase A — score, evidence, gaps. No resume actions."""
-    schema = json.dumps(response_schema or JobMatchScoreLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(response_schema or JobMatchScoreLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema (JobMatchScoreLLMResponse):\n{schema}"
+    else:
+        schema_block = ""
     system = f"""
 You are `job_match_score`, the scoring phase of a two-phase job-match pipeline.
 
@@ -180,9 +189,7 @@ Output contract:
 
 {_shared_scoring_rules()}
 - If company_summary is provided, use it to calibrate domain_relevance and technical_skills scores — a candidate whose background matches the company's actual tech stack should score higher than one who only matches the JD keywords.
-
-Structured output schema (JobMatchScoreLLMResponse):
-{schema}
+{schema_block}
 """.strip()
 
     jd_data = request.job_description.model_dump(mode="json")
@@ -210,9 +217,14 @@ def build_resume_actions_messages(
     request: JobMatchRequest,
     score: "JobMatchScore",
     response_schema: Optional[Mapping[str, Any]] = None,
+    include_schema_in_prompt: bool = True,
 ) -> List[Dict[str, str]]:
     """Phase B — resume actions grounded in Phase A score + gaps."""
-    schema = json.dumps(response_schema or ResumeActionsLLMResponse.model_json_schema(), separators=(',', ':'))
+    if include_schema_in_prompt:
+        schema = json.dumps(response_schema or ResumeActionsLLMResponse.model_json_schema(), separators=(',', ':'))
+        schema_block = f"\nStructured output schema (ResumeActionsLLMResponse):\n{schema}"
+    else:
+        schema_block = ""
 
     has_candidates = bool(request.resume_candidates)
     has_single = request.base_resume_text is not None and not has_candidates
@@ -269,9 +281,7 @@ Output contract:
 - Do not add fake metrics. If no metric exists, use impact wording without a number.
 
 {_shared_action_rules()}
-
-Structured output schema (ResumeActionsLLMResponse):
-{schema}
+{schema_block}
 """.strip()
 
     jd_data = request.job_description.model_dump(mode="json")

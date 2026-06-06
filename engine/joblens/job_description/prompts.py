@@ -6,11 +6,14 @@ from typing import Dict, List
 from .models import JobDescriptionBreakdown, JobDescriptionInput
 
 
-def build_job_description_breakdown_messages(job: JobDescriptionInput) -> List[Dict[str, str]]:
+def build_job_description_breakdown_messages(
+    job: JobDescriptionInput,
+    include_schema_in_prompt: bool = True,
+) -> List[Dict[str, str]]:
     """Build messages that ask the LLM for a typed JD breakdown."""
 
     return [
-        {"role": "system", "content": _system_prompt()},
+        {"role": "system", "content": _system_prompt(include_schema_in_prompt)},
         {"role": "user", "content": _user_prompt(job)},
     ]
 
@@ -25,13 +28,17 @@ def _strip_source_phrases_from_schema(schema: dict) -> dict:
     return schema
 
 
-def _system_prompt() -> str:
+def _system_prompt(include_schema_in_prompt: bool = True) -> str:
     """Return the job breakdown contract."""
 
-    schema = json.dumps(
-        _strip_source_phrases_from_schema(JobDescriptionBreakdown.model_json_schema()),
-        separators=(',', ':'),
-    )
+    if include_schema_in_prompt:
+        schema = json.dumps(
+            _strip_source_phrases_from_schema(JobDescriptionBreakdown.model_json_schema()),
+            separators=(',', ':'),
+        )
+        schema_block = f"\nStructured output schema:\n{schema}"
+    else:
+        schema_block = ""
     return f"""
 You are `job_description_breakdown`, the first module in a hybrid job-to-profile matching pipeline.
 
@@ -141,9 +148,7 @@ Common error checks before final answer:
 - metadata.seniority_level is not "unspecified" unless neither title language nor years of experience give any signal.
 - metadata.work_mode is not "unspecified" if any remote/hybrid/onsite signal appears anywhere in the JD.
 - The output should be directly useful to a deterministic matcher.
-
-Structured output schema:
-{schema}
+{schema_block}
 """.strip()
 
 

@@ -96,6 +96,7 @@ def _ensure_json_word(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
     return messages
 
 
+# Strips description/title only. Enum values, min/max constraints, required, and additionalProperties are preserved intentionally.
 def _strip_schema_verbose_keys(schema: Any, top_level: bool = True) -> Any:
     """Recursively remove description and nested title keys to slim token usage."""
     if isinstance(schema, dict):
@@ -191,6 +192,7 @@ class XAIClient:
     _DEFAULT_MODEL = "grok-3"
     _DEFAULT_MAX_TOKENS = 24000
     max_output_tokens = 32768
+    injects_schema_natively = False
 
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         load_dotenv()
@@ -200,7 +202,7 @@ class XAIClient:
         self.model = model or os.getenv(self._MODEL_ENV) or self._DEFAULT_MODEL
         self._client = instructor.from_openai(
             OpenAI(base_url=self._BASE_URL, api_key=key, timeout=120.0),
-            mode=instructor.Mode.JSON,
+            mode=instructor.Mode.XAI_JSON,
         )
         self.collector: Optional[UsageCollector] = None
 
@@ -260,6 +262,9 @@ class DeepSeekClient:
       and triggers DeepSeek's per-team spend limits (403).
     - response_format={"type":"json_object"} is stable on deepseek-chat and
       avoids all instructor coercion overhead.
+
+    Note: _inject_response_schema() manually appends the JSON schema to the
+    system prompt since DeepSeek has no native constrained decoding.
     """
 
     _BASE_URL = "https://api.deepseek.com"
@@ -269,6 +274,7 @@ class DeepSeekClient:
     _DEFAULT_MAX_TOKENS = 4096
     _MAX_OUTPUT_TOKENS = 8192
     max_output_tokens = 8192
+    injects_schema_natively = False
 
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         load_dotenv()
@@ -357,6 +363,7 @@ class GeminiClient:
     _DEFAULT_MODEL = "gemini-2.5-flash"
     _DEFAULT_MAX_TOKENS = 8192
     max_output_tokens = 8192
+    injects_schema_natively = False
 
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         load_dotenv()
@@ -366,7 +373,7 @@ class GeminiClient:
         self.model = model or self._DEFAULT_MODEL
         self._client = instructor.from_openai(
             OpenAI(base_url=self._BASE_URL, api_key=key, timeout=120.0),
-            mode=instructor.Mode.JSON,
+            mode=instructor.Mode.GEMINI_JSON,
         )
         self.collector: Optional[UsageCollector] = None
 
@@ -416,6 +423,7 @@ class OpenAIClient:
     _DEFAULT_MODEL = "gpt-4o-mini"
     _DEFAULT_MAX_TOKENS = 8192
     max_output_tokens = 16384
+    injects_schema_natively = True
 
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         load_dotenv()
@@ -423,9 +431,13 @@ class OpenAIClient:
         if not key:
             raise ValueError(f"{self._API_KEY_ENV} is required in .env or the environment.")
         self.model = model or self._DEFAULT_MODEL
-        self._client = instructor.from_openai(
+        self._client_schema = instructor.from_openai(
             OpenAI(api_key=key, timeout=120.0),
-            mode=instructor.Mode.JSON,
+            mode=instructor.Mode.JSON_SCHEMA,
+        )
+        self._client_o1 = instructor.from_openai(
+            OpenAI(api_key=key, timeout=120.0),
+            mode=instructor.Mode.JSON_O1,
         )
         self.collector: Optional[UsageCollector] = None
 
@@ -440,8 +452,11 @@ class OpenAIClient:
     ) -> Any:
         t0 = time.perf_counter()
 
+        _O1_MODELS = {"o1", "o1-mini", "o1-preview", "o3", "o3-mini"}
+        client = self._client_o1 if self.model in _O1_MODELS else self._client_schema
+
         def _call():
-            return self._client.chat.completions.create_with_completion(
+            return client.chat.completions.create_with_completion(
                 model=self.model,
                 response_model=response_model,
                 messages=messages,
@@ -475,6 +490,7 @@ class AnthropicClient:
     _DEFAULT_MODEL = "claude-haiku-4-5"
     _DEFAULT_MAX_TOKENS = 8192
     max_output_tokens = 8192
+    injects_schema_natively = True
 
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         load_dotenv()
@@ -504,6 +520,7 @@ class AnthropicClient:
                 temperature=temperature,
                 max_tokens=max_tokens or self._DEFAULT_MAX_TOKENS,
                 max_retries=max_retries,
+                strict=True,
             )
 
         result, raw = _retry_call(_call)
