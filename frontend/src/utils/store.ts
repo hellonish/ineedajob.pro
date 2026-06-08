@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, api, setToken, clearToken, type ProfileFileType } from './api';
+import { api, type User, type ProfileFileType } from './api';
 import { uploadFileXHR } from './uploadUtils';
 
 // ─── Upload queue ──────────────────────────────────────────────────────────────
@@ -22,11 +22,8 @@ interface UploadInput {
 }
 
 interface AppState {
-    // Auth
+    // Current user (fetched from API on mount; null until first fetch)
     user: User | null;
-    token: string | null;
-    isAuthenticated: boolean;
-    _hasHydrated: boolean;
 
     // Theme
     theme: 'dark' | 'light';
@@ -35,63 +32,32 @@ interface AppState {
     jobsFilter: string;
 
     // Actions
-    login: (token: string) => Promise<void>;
-    logout: () => void;
     fetchUser: () => Promise<void>;
     toggleTheme: () => void;
-    setHasHydrated: (state: boolean) => void;
-
-    // Jobs Filter Actions
     setJobsFilter: (filter: string) => void;
 
-    // Onboarding
-    onboardingComplete: boolean;
-    setOnboardingComplete: (done: boolean) => void;
-
-    // Upload queue — persists across navigation, not persisted to localStorage
+    // Upload queue
     uploadQueue: UploadQueueItem[];
-    uploadCompletedAt: number | null; // timestamp of last completed batch; profile page watches this
+    uploadCompletedAt: number | null;
     enqueueUploads: (items: UploadInput[]) => void;
     clearCompletedUploads: () => void;
-
 }
 
 export const useStore = create<AppState>()(
     persist(
-        (set, get) => ({
-            // Initial State
+        (set) => ({
             user: null,
-            token: null,
-            isAuthenticated: false,
-            _hasHydrated: false,
             theme: 'light',
             jobsFilter: 'all',
-            onboardingComplete: false,
             uploadQueue: [],
             uploadCompletedAt: null,
-
-            setHasHydrated: (state: boolean) => {
-                set({ _hasHydrated: state });
-            },
-
-            // Auth Actions
-            login: async (token: string) => {
-                setToken(token);
-                set({ token, isAuthenticated: true });
-                await get().fetchUser();
-            },
-
-            logout: () => {
-                clearToken();
-                set({ user: null, token: null, isAuthenticated: false });
-            },
 
             fetchUser: async () => {
                 try {
                     const user = await api.getMe();
-                    set({ user, isAuthenticated: true, onboardingComplete: !!user.onboarding_completed });
+                    set({ user });
                 } catch {
-                    get().logout();
+                    // dev backend not running yet — leave user null
                 }
             },
 
@@ -101,10 +67,6 @@ export const useStore = create<AppState>()(
 
             setJobsFilter: (filter: string) => {
                 set({ jobsFilter: filter });
-            },
-
-            setOnboardingComplete: (done: boolean) => {
-                set({ onboardingComplete: done });
             },
 
             enqueueUploads: (items: UploadInput[]) => {
@@ -155,32 +117,10 @@ export const useStore = create<AppState>()(
                     ),
                 }));
             },
-
         }),
         {
             name: 'wand-storage',
-            partialize: (state) => ({ token: state.token, theme: state.theme, jobsFilter: state.jobsFilter, onboardingComplete: state.onboardingComplete }),
-            onRehydrateStorage: () => (state) => {
-                // When store hydrates from localStorage, sync token to api.ts
-                if (state) {
-                    // Recovery: If store has no token but localStorage does (e.g. from login redirect), use it
-                    const rawToken = localStorage.getItem('token');
-                    if (!state.token && rawToken) {
-                        state.token = rawToken;
-                    }
-
-                    // Sync api.ts with store state and mark as authenticated if token exists
-                    if (state.token) {
-                        setToken(state.token);
-                        state.isAuthenticated = true; // optimistic — fetchUser verifies on protected pages
-                    } else {
-                        clearToken();
-                        state.isAuthenticated = false;
-                    }
-
-                    state.setHasHydrated(true);
-                }
-            },
+            partialize: (state) => ({ theme: state.theme, jobsFilter: state.jobsFilter }),
         }
     )
 );

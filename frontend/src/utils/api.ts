@@ -2,23 +2,6 @@ import { gtagEvent } from './gtag';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-// Get auth token from localStorage
-function getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
-}
-
-// Set auth token
-export function setToken(token: string): void {
-    localStorage.setItem('token', token);
-}
-
-// Clear auth token
-export function clearToken(): void {
-    localStorage.removeItem('token');
-}
-
-// Extended RequestInit to support custom options
 interface FetchOptions extends RequestInit {
     suppressError?: boolean;
 }
@@ -42,28 +25,15 @@ export function isApiError(e: unknown): e is ApiError {
     return e instanceof Error;
 }
 
-// Fetch wrapper with auth
 async function fetchWithAuth(url: string, options: FetchOptions = {}) {
-    const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
     };
 
     const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
 
     if (!response.ok) {
-        // If suppressError is true, throw the response so component can handle status codes manually
-        // OR return null/custom object? 
-        // Better: throw error but component catches it. 
-        // Wait, the user wants to suppress CONSOLE error "throw new Error(...)". 
-        // If I throw here, it shows in console if uncaught? No, "Uncaught (in promise)" shows.
-        // But if I catch it in component, it still might show if browser logs all errors?
-        // Actually, the user's stack trace shows `fetchWithAuth` throwing `new Error`.
-        // If we want to avoid that specific line throwing for 404s, we can handle it here.
-
-        // If suppressError is true, we want to avoid throwing for 404s so the caller can handle null
         if (options.suppressError && response.status === 404) {
             return null;
         }
@@ -79,11 +49,9 @@ async function fetchWithAuth(url: string, options: FetchOptions = {}) {
             : error.message;
         const apiError = new Error(detail || 'Request failed') as ApiError;
         apiError.status = response.status;
-        // Attach structured code from the detail object when available (e.g. NO_PROFILE_DOCUMENTS)
         if (rawDetail != null && typeof rawDetail === 'object' && (rawDetail as { code?: string }).code) {
             apiError.code = (rawDetail as { code: string }).code;
         }
-        // Extract retry-after for 429s
         if (response.status === 429) {
             const headerRetry = response.headers.get('Retry-After');
             const bodyRetry = rawDetail != null && typeof rawDetail === 'object'
@@ -123,7 +91,7 @@ export interface LLMGroup {
 
 export interface LLMConfig {
     groups: LLMGroup[];
-    selection: Record<string, LLMTaskConfig>;          // group_id -> {provider, model}
+    selection: Record<string, LLMTaskConfig>;
     models_by_provider: Record<string, LLMModelOption[]>;
     available_providers: string[];
     has_any_key: boolean;
@@ -144,7 +112,6 @@ export interface UsageEvent {
 
 // ============ Types matching API schemas ============
 
-// User types
 export interface User {
     id: string;
     email: string;
@@ -158,7 +125,6 @@ export interface User {
 export type JobStatus = 'tracked' | 'queued' | 'analyzing' | 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
 export type ProfileFileType = 'resume' | 'linkedin' | 'other';
 
-// Job posting data structure
 export interface JobPosting {
     job_title: string;
     company_name: string;
@@ -187,7 +153,6 @@ export interface JobAnalysisSummary {
     biggest_gaps: string[];
 }
 
-// Resume history entry
 export interface ResumeHistoryEntry {
     version: number;
     resume_data: Record<string, unknown>;
@@ -195,7 +160,6 @@ export interface ResumeHistoryEntry {
     created_at: string;
 }
 
-// Job list response (GET /api/jobs)
 export interface JobListItem {
     id: string;
     job_posting: JobPosting;
@@ -210,7 +174,6 @@ export interface JobListItem {
     current_step?: number;
 }
 
-// Full job response (GET /api/jobs/{id})
 export interface Job {
     id: string;
     job_posting: JobPosting;
@@ -224,13 +187,11 @@ export interface Job {
     updated_at?: string;
 }
 
-// Job create request
 export interface JobCreate {
     jd_text: string;
     company_website?: string;
 }
 
-// Simple track job request (no AI pipeline)
 export interface JobTrackCreate {
     job_title: string;
     company_name: string;
@@ -239,14 +200,12 @@ export interface JobTrackCreate {
     status?: JobStatus;
 }
 
-// Job update request
 export interface JobUpdate {
     status?: JobStatus;
     user_notes?: string;
     job_link?: string | null;
 }
 
-// Profile types
 export interface UserProfile {
     id: string;
     user_id: string;
@@ -295,7 +254,6 @@ export interface ProfileFileUploadResponse {
     parsed_data?: Record<string, unknown>;
 }
 
-// Cover Letter Types
 export interface CoverLetter {
     id: string;
     job_id?: string;
@@ -331,7 +289,6 @@ export interface JDToneAnalysis {
     reasoning: string;
 }
 
-// News Types
 export interface NewsArticle {
     title: string;
     description: string;
@@ -345,10 +302,6 @@ export interface NewsResponse {
     articles: NewsArticle[];
     total_results: number;
 }
-
-// ============================================================================
-// JobLens Types
-// ============================================================================
 
 export interface UnifiedProfile {
     basics?: {
@@ -464,8 +417,8 @@ export interface JobLensSession {
     profile_snapshot?: UnifiedProfile | null;
     job_description?: JobDescriptionBreakdownResult | null;
     company_intel?: CompanyIntelResult | null;
-    match_analysis?: JobMatchResult | null;     // Phase A: score + evidence
-    resume_actions?: Record<string, unknown> | null;  // Phase B: resume tailoring
+    match_analysis?: JobMatchResult | null;
+    resume_actions?: Record<string, unknown> | null;
     reachout?: ReachoutResult | null;
     raw_jd_text?: string;
     company_website?: string;
@@ -477,18 +430,14 @@ export interface JobLensSession {
 // ============ API Methods ============
 
 export const api = {
-    // Auth
+    // User
     getMe: (): Promise<User> => fetchWithAuth('/api/auth/me'),
-    logout: () => fetchWithAuth('/api/auth/logout', { method: 'POST' }),
     updateUser: (data: { name?: string; profile_picture?: string }): Promise<User> =>
         fetchWithAuth('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
     uploadAvatar: (file: File): Promise<User> => {
         const formData = new FormData();
         formData.append('file', file);
-        const token = getToken();
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        return fetch(`${API_BASE}/api/auth/avatar`, { method: 'POST', headers, body: formData })
+        return fetch(`${API_BASE}/api/auth/avatar`, { method: 'POST', body: formData })
             .then(async (res) => {
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
@@ -498,7 +447,6 @@ export const api = {
             });
     },
     deleteAvatar: (): Promise<User> => fetchWithAuth('/api/auth/avatar', { method: 'DELETE' }),
-    completeOnboarding: (): Promise<User> => fetchWithAuth('/api/auth/complete-onboarding', { method: 'POST' }),
 
     // Jobs
     getJobs: (status?: string): Promise<JobListItem[]> => {
@@ -520,18 +468,14 @@ export const api = {
     parseResumeForJob: async (jobId: string, file: File): Promise<{ success: boolean; filename: string; parsed_resume: Record<string, unknown> }> => {
         const formData = new FormData();
         formData.append('file', file);
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/api/jobs/${jobId}/parse-resume`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-        });
+        const res = await fetch(`${API_BASE}/api/jobs/${jobId}/parse-resume`, { method: 'POST', body: formData });
         if (!res.ok) {
             const error = await res.json().catch(() => ({ detail: 'Failed to parse resume' }));
             throw new Error(error.detail || 'Failed to parse resume');
         }
         return res.json();
     },
+
     // Cover Letters
     getCoverLetters: (): Promise<CoverLetter[]> => fetchWithAuth('/api/cover-letters'),
     getCoverLetter: (id: string): Promise<CoverLetter> => fetchWithAuth(`/api/cover-letters/${id}`),
@@ -548,52 +492,33 @@ export const api = {
 
     // Profile
     getProfile: (): Promise<UserProfile> => fetchWithAuth('/api/profile'),
-
     uploadProfileFile: (file: File, type: ProfileFileType): Promise<ProfileUploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
-
-        // Custom handling for FormData
-        const token = getToken();
-        // Don't set Content-Type header, let browser set it with boundary
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        return fetch(`${API_BASE}/api/profile/upload`, {
-            method: 'POST',
-            headers,
-            body: formData
-        }).then(async (res) => {
-            if (!res.ok) {
-                const error = await res.json().catch(() => ({ detail: 'Request failed' }));
-                throw new Error(error.detail || 'Request failed');
-            }
-            return res.json();
-        });
+        return fetch(`${API_BASE}/api/profile/upload`, { method: 'POST', body: formData })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+                    throw new Error(error.detail || 'Request failed');
+                }
+                return res.json();
+            });
     },
-
     createUnifiedProfile: async (): Promise<UserProfile> => {
         const result = await fetchWithAuth('/api/profile/unified', { method: 'POST' });
         gtagEvent('profile_unified');
         return result;
     },
-
     updateAdditionalContext: (additional_context: string): Promise<UserProfile> =>
         fetchWithAuth('/api/profile/additional-context', { method: 'PATCH', body: JSON.stringify({ additional_context }) }),
-
     deleteProfileFile: (type: 'resume' | 'linkedin' | 'other'): Promise<UserProfile> =>
         fetchWithAuth(`/api/profile/${type}`, { method: 'DELETE' }),
-
     getProfileFileBlob: async (type: string): Promise<Blob> => {
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/api/profile/file/${type}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
+        const res = await fetch(`${API_BASE}/api/profile/file/${type}`);
         if (!res.ok) throw new Error('Failed to download file');
         return res.blob();
     },
-
     uploadProfileFileMulti: async (
         file: File, type: ProfileFileType, additionalContext?: string
     ): Promise<ProfileFileUploadResponse> => {
@@ -601,16 +526,7 @@ export const api = {
         formData.append('file', file);
         formData.append('type', type);
         if (additionalContext) formData.append('additional_context', additionalContext);
-
-        const token = getToken();
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(`${API_BASE}/api/profile/upload`, {
-            method: 'POST',
-            headers,
-            body: formData
-        });
+        const res = await fetch(`${API_BASE}/api/profile/upload`, { method: 'POST', body: formData });
         if (!res.ok) {
             const error = await res.json().catch(() => ({ detail: 'Request failed' }));
             throw new Error(error.detail || 'Request failed');
@@ -619,7 +535,6 @@ export const api = {
         gtagEvent('file_uploaded', { file_type: type });
         return result;
     },
-
     getProfileFiles: (page?: number, pageSize?: number, type?: string): Promise<ProfileFileListResponse> => {
         const params = new URLSearchParams();
         if (page) params.set('page', String(page));
@@ -628,21 +543,14 @@ export const api = {
         const qs = params.toString();
         return fetchWithAuth(`/api/profile/files${qs ? '?' + qs : ''}`);
     },
-
     getProfileFileById: (fileId: string): Promise<ProfileFile> =>
         fetchWithAuth(`/api/profile/files/${fileId}`),
-
     deleteProfileFileById: (fileId: string): Promise<void> =>
         fetchWithAuth(`/api/profile/files/${fileId}`, { method: 'DELETE' }),
-
     updateProfileFile: (fileId: string, data: { file_type?: ProfileFileType; additional_context?: string }): Promise<ProfileFile> =>
         fetchWithAuth(`/api/profile/files/${fileId}`, { method: 'PATCH', body: JSON.stringify(data) }),
-
     downloadProfileFile: async (fileId: string): Promise<Blob> => {
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/api/profile/file/${fileId}/download`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
+        const res = await fetch(`${API_BASE}/api/profile/file/${fileId}/download`);
         if (!res.ok) throw new Error('Failed to download file');
         return res.blob();
     },
@@ -665,29 +573,20 @@ export const api = {
     // News
     getNews: (companyName: string): Promise<NewsResponse> => fetchWithAuth(`/api/news/${encodeURIComponent(companyName)}`),
 
-    // Run JobLens pipeline for a job
+    // JobLens pipeline
     runJobLens: async (jobId: string): Promise<Job> => {
         const result = await fetchWithAuth(`/api/jobs/${jobId}/analyze`, { method: 'POST' });
         gtagEvent('job_analysis_started', { job_id: jobId });
         return result;
     },
-
-    // Retry specific failed steps (does not restart the full pipeline)
     retrySteps: (jobId: string, steps: string[]): Promise<JobLensSession> =>
-        fetchWithAuth(`/api/jobs/${jobId}/retry-steps`, {
-            method: 'POST',
-            body: JSON.stringify({ steps }),
-        }),
-
-    // Convenience
+        fetchWithAuth(`/api/jobs/${jobId}/retry-steps`, { method: 'POST', body: JSON.stringify({ steps }) }),
     getJobWithSession: async (jobId: string): Promise<{ job: Job | null; session: JobLensSession | null }> => {
         const job = await fetchWithAuth(`/api/jobs/${jobId}`, { suppressError: true });
         if (!job) return { job: null, session: null };
         let session = null;
         if (job.joblens_session_id) {
-            try {
-                session = await fetchWithAuth(`/api/jobs/${jobId}/analysis`);
-            } catch {}
+            try { session = await fetchWithAuth(`/api/jobs/${jobId}/analysis`); } catch {}
         }
         return { job, session };
     },

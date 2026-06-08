@@ -23,7 +23,7 @@ export default function CareerContextDocPage() {
     const id = params.id as string;
     const isNew = id === 'new';
 
-    const { isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
     const { createDoc, updateDoc, persistDoc, deleteDoc, getDoc, hydrated } = useCareerDocs();
 
     const [doc, setDoc] = useState<CareerDoc | null>(null);
@@ -37,10 +37,6 @@ export default function CareerContextDocPage() {
     const titleRef = useRef(title);
     titleRef.current = title;
 
-    // Redirect if not authenticated
-    useEffect(() => {
-        if (_hasHydrated && !isAuthenticated) router.push('/');
-    }, [_hasHydrated, isAuthenticated, router]);
 
     // Load or create doc once localStorage is ready
     useEffect(() => {
@@ -119,7 +115,7 @@ export default function CareerContextDocPage() {
         router.push('/profile');
     };
 
-    if (!_hasHydrated || !isAuthenticated || !hydrated) {
+    if (!hydrated) {
         return (
             <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
                 <Header />

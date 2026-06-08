@@ -17,32 +17,23 @@ const SNOOZE_KEY = 'wand_profile_reminder_snoozed_until';
 const SNOOZE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export default function ProfileDocumentReminder() {
-    const { isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
     const router = useRouter();
     const pathname = usePathname();
     const [visible, setVisible] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        if (!_hasHydrated || !isAuthenticated) return;
-        // Don't show on the profile page — user is already there
         if (pathname?.startsWith('/profile')) return;
-
-        // Respect active snooze
         const snoozedUntil = Number(localStorage.getItem(SNOOZE_KEY) || 0);
         if (Date.now() < snoozedUntil) return;
-
-        // Small delay so the reminder doesn't compete with initial page content
         const timer = setTimeout(() => {
             api.getProfileFiles()
-                .then(r => {
-                    if (r.total === 0) setVisible(true);
-                })
-                .catch(() => {/* silently ignore */});
+                .then(r => { if (r.total === 0) setVisible(true); })
+                .catch(() => {});
         }, 1500);
-
         return () => clearTimeout(timer);
-    }, [_hasHydrated, isAuthenticated, pathname]);
+    }, [pathname]);
 
     const handleDismiss = () => {
         localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));

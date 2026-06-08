@@ -601,7 +601,7 @@ function ArchivedSection({
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, token, _hasHydrated, fetchUser, user } = useStore();
+  const { } = useStore();
 
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -664,12 +664,7 @@ export default function DashboardPage() {
     await handleStatusChange(jobId, 'tracked');
   }, [handleStatusChange]);
 
-  useEffect(() => {
-    if (!_hasHydrated) return;
-    if (token && !user) { fetchUser(); return; }
-    if (!token) { router.push('/'); return; }
-    if (isAuthenticated) loadJobs();
-  }, [_hasHydrated, isAuthenticated, token, user, fetchUser, router, loadJobs]);
+  useEffect(() => { loadJobs(); }, [loadJobs]);
 
   // Poll while any job is still processing so step bars and status stay live.
   const processingJobs = jobs.filter((j) => j.status === 'queued' || j.status === 'analyzing');
@@ -679,7 +674,6 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [processingJobs.length, loadJobs]);
 
-  if (!_hasHydrated || !isAuthenticated) return null;
 
   // ── Derived data ────────────────────────────────────────────────────────
   const activeBoardJobs = jobs.filter((j) =>

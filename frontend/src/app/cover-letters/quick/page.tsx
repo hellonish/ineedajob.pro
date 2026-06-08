@@ -19,7 +19,7 @@ const MODES = [
 function QuickCoverLetterContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { token, isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
 
     const viewLetterId = searchParams.get('view');
 
@@ -41,11 +41,7 @@ function QuickCoverLetterContent() {
     const [toneAnalysis, setToneAnalysis] = useState<JDToneAnalysis | null>(null);
     const [analyzingTone, setAnalyzingTone] = useState(false);
 
-    useEffect(() => {
-        if (!_hasHydrated) return;
-        if (!token) { router.push('/'); return; }
-        initPage();
-    }, [token, _hasHydrated]);
+    useEffect(() => { initPage(); }, []);
 
     const initPage = async () => {
         if (viewLetterId) {
@@ -211,7 +207,7 @@ function QuickCoverLetterContent() {
         });
     };
 
-    if (!_hasHydrated || !isAuthenticated || loading) {
+    if (loading) {
         return (
             <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
                 <Header />

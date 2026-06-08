@@ -229,7 +229,7 @@ const COLS = [
 
 export default function JobsPage() {
     const router = useRouter();
-    const { isAuthenticated, token, _hasHydrated, fetchUser, user, jobsFilter, setJobsFilter } = useStore();
+    const { jobsFilter, setJobsFilter } = useStore();
     const [jobs, setJobs] = useState<JobListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -240,18 +240,13 @@ export default function JobsPage() {
 
     const effectiveJobsFilter = JOB_FILTERS.some(f => f.key === jobsFilter) ? jobsFilter : 'all';
 
-    useEffect(() => {
-        if (!_hasHydrated) return;
-        if (token && !user) { fetchUser(); return; }
-        if (!token) { router.push('/'); return; }
-        if (isAuthenticated) loadJobs();
-    }, [_hasHydrated, isAuthenticated, token, user, fetchUser, router]);
+    useEffect(() => { loadJobs(); }, []);
 
     useEffect(() => {
-        if (_hasHydrated && effectiveJobsFilter !== jobsFilter) {
+        if (effectiveJobsFilter !== jobsFilter) {
             setJobsFilter('all');
         }
-    }, [_hasHydrated, effectiveJobsFilter, jobsFilter, setJobsFilter]);
+    }, [effectiveJobsFilter, jobsFilter, setJobsFilter]);
 
     const loadJobs = async () => {
         setIsLoading(true);
@@ -335,7 +330,6 @@ export default function JobsPage() {
         setSort(s => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }));
     };
 
-    if (!_hasHydrated || !isAuthenticated) return null;
 
     return (
         <main style={{ minHeight: '100vh', background: 'var(--bg)' }}>

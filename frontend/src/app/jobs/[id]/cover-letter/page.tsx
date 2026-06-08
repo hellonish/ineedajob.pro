@@ -19,7 +19,7 @@ const MODES = [
 export default function CoverLetterPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
-    const { token, isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
 
     const [job, setJob] = useState<Job | null>(null);
     const [loading, setLoading] = useState(true);
@@ -36,14 +36,7 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
     const [toneAnalysis, setToneAnalysis] = useState<JDToneAnalysis | null>(null);
     const [analyzingTone, setAnalyzingTone] = useState(false);
 
-    useEffect(() => {
-        if (!_hasHydrated) return;
-        if (!token) {
-            router.push('/');
-            return;
-        }
-        loadData();
-    }, [id, token, _hasHydrated]);
+    useEffect(() => { loadData(); }, [id]);
 
     useEffect(() => {
         if (selectedMode === 'auto' && job) {
@@ -190,7 +183,7 @@ export default function CoverLetterPage({ params }: { params: Promise<{ id: stri
         });
     };
 
-    if (!_hasHydrated || !isAuthenticated || loading || !job) {
+    if (loading || !job) {
         return (
             <div className="min-h-screen">
                 <Header />

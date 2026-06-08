@@ -598,7 +598,7 @@ function UsageTab() {
 function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, token, _hasHydrated, fetchUser, logout, theme, toggleTheme } = useStore();
+  const { user, fetchUser, theme, toggleTheme } = useStore();
 
   const tab = searchParams.get('tab') || 'account';
 
@@ -607,9 +607,7 @@ function SettingsPageInner() {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState('');
 
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [avatarHover, setAvatarHover] = useState(false);
@@ -622,9 +620,8 @@ function SettingsPageInner() {
   const cropImgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (_hasHydrated && !token) router.push('/');
     if (user) setName(user.name ?? '');
-  }, [user, token, _hasHydrated, router]);
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -710,7 +707,7 @@ function SettingsPageInner() {
 
   const hasChanges = name !== (user?.name ?? '');
 
-  if (!_hasHydrated || !token || !user) return null;
+  if (!user) return null;
 
   const NAV_ITEMS = [
     { key: 'account', label: 'Account', icon: 'user' },
@@ -939,36 +936,6 @@ function SettingsPageInner() {
                 </SettingRow>
               </Section>
 
-              {/* ── Session ─────────────────────────────────────────── */}
-              <Section title="Session">
-                <SettingRow
-                  label="Sign out"
-                  hint="You'll need to sign in again to access your jobs and analysis."
-                >
-                  <button
-                    onClick={() => setShowLogoutConfirm(true)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      height: 32, padding: '0 14px',
-                      borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 500,
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text-2)',
-                      cursor: 'pointer', transition: 'all 140ms ease',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'var(--text-4)';
-                      e.currentTarget.style.color = 'var(--text)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = 'var(--border)';
-                      e.currentTarget.style.color = 'var(--text-2)';
-                    }}
-                  >
-                    <Icon name="logout" size={14} />
-                    Sign out
-                  </button>
-                </SettingRow>
-              </Section>
             </>
           )}
 
@@ -977,17 +944,6 @@ function SettingsPageInner() {
           {tab === 'usage' && <UsageTab />}
         </div>
       </div>
-
-      {/* Sign out confirmation */}
-      <ConfirmationModal
-        isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        onConfirm={() => { logout(); router.push('/'); }}
-        title="Sign Out"
-        message="Are you sure you want to sign out?"
-        confirmLabel="Sign Out"
-        isDestructive={false}
-      />
 
       {/* Crop modal */}
       {cropSrc && (

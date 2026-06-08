@@ -2000,7 +2000,7 @@ function ConstraintsCard({ text }: { text: string }) {
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const { token, _hasHydrated } = useStore();
+    const { } = useStore();
 
     const [job, setJob] = useState<Job | null>(null);
     const [session, setSession] = useState<JobLensSession | null>(null);
@@ -2019,11 +2019,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!_hasHydrated) return;
-        if (!token) { router.push('/'); return; }
         load();
         api.getProfileFiles().then(r => setProfileDocCount(r.total)).catch(() => setProfileDocCount(0));
-    }, [_hasHydrated, token, id, router]);
+    }, [id]);
 
     const load = async (silent = false) => {
         // Serve from LRU cache immediately for fast revisits
@@ -2227,7 +2225,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         }
     };
 
-    if (!_hasHydrated || loading) {
+    if (loading) {
         return (
             <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
                 <Header />

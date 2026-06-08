@@ -6,7 +6,6 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -78,13 +77,6 @@ async def block_ip_middleware(request: Request, call_next):
 # SlowAPIMiddleware applies the global default limits (hour/day) to undecorated
 # routes; decorated routes stack them via @limiter.limit(..., override_defaults=False).
 app.add_middleware(SlowAPIMiddleware)
-
-# Session middleware for OAuth
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.JWT_SECRET_KEY,
-)
-
 app.add_middleware(BaseHTTPMiddleware, dispatch=block_ip_middleware)
 
 # CORS — set ALLOWED_ORIGINS in env, comma-separated. No wildcard fallback.

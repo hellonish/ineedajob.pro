@@ -75,7 +75,7 @@ function Step({ num, label, action, actionLabel, dimmed }: {
 function ProfilePageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { token, isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [unifying, setUnifying] = useState(false);
@@ -95,12 +95,10 @@ function ProfilePageInner() {
     });
 
     useEffect(() => {
-        if (!_hasHydrated) return;
-        if (!token) { router.push('/'); return; }
         loadProfile();
         loadFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, _hasHydrated]);
+    }, []);
 
     // Reload files every time the panel opens to guarantee fresh data
     useEffect(() => {
@@ -253,7 +251,7 @@ function ProfilePageInner() {
         }
     };
 
-    if (!_hasHydrated || !isAuthenticated || loading) {
+    if (loading) {
         return (
             <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
                 <Header />

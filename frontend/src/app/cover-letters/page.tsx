@@ -72,7 +72,7 @@ function timeAgo(isoStr: string): string {
 
 export default function CoverLettersPage() {
     const router = useRouter();
-    const { token, isAuthenticated, _hasHydrated } = useStore();
+    const { } = useStore();
 
     const [letters, setLetters] = useState<CoverLetter[]>([]);
     const [jobs, setJobs] = useState<JobListItem[]>([]);
@@ -102,11 +102,9 @@ export default function CoverLettersPage() {
     const [draftCompanyName, setDraftCompanyName] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!_hasHydrated) return;
-        if (!token) { router.push('/'); return; }
         loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, _hasHydrated]);
+    }, []);
 
     const loadData = async () => {
         // Serve cached letters immediately to avoid blank screen on revisit
@@ -310,7 +308,7 @@ export default function CoverLettersPage() {
             || (job.job_posting?.company_name || '').toLowerCase().includes(q);
     });
 
-    if (!_hasHydrated || !isAuthenticated || loading) {
+    if (loading) {
         return (
             <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
                 <Header />

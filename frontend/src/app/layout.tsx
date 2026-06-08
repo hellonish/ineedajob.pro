@@ -35,7 +35,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { theme, _hasHydrated, token, isAuthenticated, fetchUser } = useStore();
+  const { theme, fetchUser } = useStore();
   const [mounted, setMounted] = useState(false);
 
   useGlobalWebSocket();
@@ -43,13 +43,8 @@ export default function RootLayout({
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (_hasHydrated && token && useStore.getState().user === null) {
-      fetchUser();
-    }
-  }, [_hasHydrated, token, fetchUser]);
+    fetchUser();
+  }, [fetchUser]);
 
   useEffect(() => {
     if (!mounted) return;
