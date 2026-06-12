@@ -177,8 +177,8 @@ export default function FounderPage() {
                     </ul>
                     <P>
                         If you have ideas, feedback, or bug reports, I'd love to hear from you. You can reach me at{' '}
-                        <a href="mailto:hellonishantsh@gmail.com" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            hellonishantsh@gmail.com
+                        <a href="mailto:nishant.sharma@ineedajob.pro" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                            nishant.sharma@ineedajob.pro
                         </a>{' '}
                         or open an issue on{' '}
                         <a href="https://github.com/hellonish/ineedajob.pro" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
@@ -187,23 +187,31 @@ export default function FounderPage() {
                     </P>
                 </Section>
 
-                {/* Footer CTA */}
-                <div style={{
-                    marginTop: 56,
-                    paddingTop: 24,
-                    borderTop: '1px solid var(--border-soft)',
-                }}>
-                    <P>
-                        Want to learn more?{' '}
-                        <Link href="/about" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            Read about the product
-                        </Link>{' '}
-                        or{' '}
-                        <Link href="/dashboard" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            try it yourself
-                        </Link>.
-                    </P>
-                </div>
+                {/* Footer Navigation */}
+                <nav
+                    style={{
+                        marginTop: 56,
+                        paddingTop: 24,
+                        borderTop: '1px solid var(--border-soft)',
+                        display: 'flex',
+                        gap: 20,
+                        flexWrap: 'wrap',
+                        fontSize: 14,
+                    }}
+                >
+                    <Link href="/about" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        About
+                    </Link>
+                    <a href="https://hellonish.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Portfolio
+                    </a>
+                    <Link href="/terms" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Terms of Service
+                    </Link>
+                    <Link href="/privacy" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Privacy Policy
+                    </Link>
+                </nav>
             </article>
         </main>
     );
