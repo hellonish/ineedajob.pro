@@ -181,23 +181,31 @@ export default function AboutPage() {
                     </P>
                 </Section>
 
-                {/* Footer CTA */}
-                <div style={{
-                    marginTop: 56,
-                    paddingTop: 24,
-                    borderTop: '1px solid var(--border-soft)',
-                }}>
-                    <P>
-                        Ready to get started?{' '}
-                        <Link href="/dashboard" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            Go to the dashboard
-                        </Link>{' '}
-                        or{' '}
-                        <Link href="/founder" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            learn more about the founder
-                        </Link>.
-                    </P>
-                </div>
+                {/* Footer Navigation */}
+                <nav
+                    style={{
+                        marginTop: 56,
+                        paddingTop: 24,
+                        borderTop: '1px solid var(--border-soft)',
+                        display: 'flex',
+                        gap: 20,
+                        flexWrap: 'wrap',
+                        fontSize: 14,
+                    }}
+                >
+                    <Link href="/founder" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Founder
+                    </Link>
+                    <a href="https://hellonish.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Portfolio
+                    </a>
+                    <Link href="/terms" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Terms of Service
+                    </Link>
+                    <Link href="/privacy" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Privacy Policy
+                    </Link>
+                </nav>
             </article>
         </main>
     );

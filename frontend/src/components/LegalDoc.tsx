@@ -112,6 +112,9 @@ export function LegalPage({
                 >
                     <LegalNavLink href="/about">About</LegalNavLink>
                     <LegalNavLink href="/founder">Founder</LegalNavLink>
+                    <a href="https://hellonish.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                        Portfolio
+                    </a>
                     <LegalNavLink href="/terms">Terms of Service</LegalNavLink>
                     <LegalNavLink href="/privacy">Privacy Policy</LegalNavLink>
                 </nav>
