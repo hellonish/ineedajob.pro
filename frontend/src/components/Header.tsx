@@ -10,7 +10,7 @@ import UserAvatar from './UserAvatar';
 type IconName =
   | 'dashboard' | 'briefcase' | 'mail' | 'user'
   | 'sun' | 'moon' | 'logout' | 'settings' | 'sparkles'
-  | 'chevron-left' | 'chevron-right';
+  | 'chevron-left' | 'chevron-right' | 'info' | 'badge';
 
 function Icon({ name, size = 16, stroke = 1.5 }: { name: IconName; size?: number; stroke?: number }) {
   const common = {
@@ -30,6 +30,8 @@ function Icon({ name, size = 16, stroke = 1.5 }: { name: IconName; size?: number
     case 'sparkles': return <svg {...common}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" /></svg>;
     case 'chevron-left': return <svg {...common}><path d="M15 18l-6-6 6-6" /></svg>;
     case 'chevron-right': return <svg {...common}><path d="M9 18l6-6-6-6" /></svg>;
+    case 'info': return <svg {...common}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>;
+    case 'badge': return <svg {...common}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z" /></svg>;
   }
 }
 
@@ -40,6 +42,8 @@ const NAV_LINKS = [
   { href: '/jobs', label: 'Jobs', icon: 'briefcase' as IconName },
   { href: '/profile', label: 'Profile', icon: 'user' as IconName },
   { href: '/cover-letters', label: 'Cover letters', icon: 'mail' as IconName },
+  { href: '/about', label: 'About', icon: 'info' as IconName },
+  { href: '/founder', label: 'Founder', icon: 'badge' as IconName },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
