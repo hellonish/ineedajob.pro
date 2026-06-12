@@ -177,8 +177,8 @@ export default function FounderPage() {
                     </ul>
                     <P>
                         If you have ideas, feedback, or bug reports, I'd love to hear from you. You can reach me at{' '}
-                        <a href="mailto:hellonishantsh@gmail.com" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                            hellonishantsh@gmail.com
+                        <a href="mailto:nishant.sharma@ineedajob.pro" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                            nishant.sharma@ineedajob.pro
                         </a>{' '}
                         or open an issue on{' '}
                         <a href="https://github.com/hellonish/ineedajob.pro" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent, var(--text))', textDecoration: 'underline', textUnderlineOffset: 2 }}>
