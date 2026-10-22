@@ -182,6 +182,10 @@ class GatedSearchResult(StrictReachoutModel):
     inferred_name: Optional[str] = None
     inferred_title: Optional[str] = None
     inferred_company: Optional[str] = None
+    company_evidence: bool = Field(
+        default=False,
+        description="True when the company name or domain appears in the search result title/snippet.",
+    )
 
 
 class ReachoutCandidate(StrictReachoutModel):

@@ -121,6 +121,8 @@ Hard acceptance gates:
 - Reject LinkedIn company pages, jobs pages, posts, directories, school pages, search pages, and articles.
 - Reject if a person name cannot be extracted.
 - Reject if the company is not clearly current or strongly implied by title/snippet.
+- The search query is not company evidence: every query contains the company name, so a result matching the query proves nothing about employment.
+- Each pre-gated result has `company_evidence`. When it is false, the company name and domain are absent from the title/snippet; reject unless the title/snippet still strongly implies the company.
 - Reject if role/persona cannot be inferred from title/snippet.
 - Reject former employees unless `allow_former_employees=true`.
 - Reject if confidence would be below the input `min_confidence`.

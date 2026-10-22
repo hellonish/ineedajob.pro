@@ -22,6 +22,7 @@ from engine.joblens.reachout import (
     search_ddgs,
     search_duckduckgo_html,
 )
+from engine.joblens.reachout.helpers import _company_terms, _has_company_evidence
 from engine.joblens.reachout.service import (
     _build_provider_chain,
     _linkedin_search_urls_from_plan,
@@ -171,10 +172,114 @@ def test_service_skips_validator_when_no_results_pass_pre_gate():
     assert len(result.raw_results) == 1
     assert len(result.rejected_results) == 1
     assert len(llm.calls) == 1
-    assert result.warnings == [
-        "Planner warning",
-        "No search results passed deterministic pre-gate; skipped LLM candidate validation.",
+    assert len(result.warnings) == 2
+    assert result.warnings[0] == "Planner warning"
+    assert "LinkedIn fallback URLs" in result.warnings[1]
+    assert result.linkedin_search_urls
+
+
+def _company_evidence_results(query):
+    """Create one profile without company evidence and one with it."""
+
+    return [
+        SearchResult(
+            title="Bob Smith - Software Engineer | LinkedIn",
+            url="https://www.linkedin.com/in/bob-smith",
+            snippet="Software Engineer at Globex.",
+            query=query,
+            rank=1,
+            source="static",
+        ),
+        SearchResult(
+            title="Jane Carter - Technical Recruiter - Atom Investors | LinkedIn",
+            url="https://www.linkedin.com/in/jane-carter-123456",
+            snippet="Technical Recruiter at Atom Investors.",
+            query=query,
+            rank=2,
+            source="static",
+        ),
     ]
+
+
+def _accepted_candidate(full_name, source_result_id, profile_url, query):
+    """Create an LLM-accepted candidate that claims the target company."""
+
+    return ReachoutCandidate(
+        full_name=full_name,
+        source_result_id=source_result_id,
+        company="Atom Investors",
+        profile_url=profile_url,
+        profile_source=ProfileSource.LINKEDIN,
+        likely_persona=ReachoutPersona.OTHER,
+        confidence=0.95,
+        confidence_band=ConfidenceBand.HIGH,
+        matched_query=query,
+        source_title=full_name,
+    )
+
+
+def test_pre_gate_records_company_evidence_without_rejecting():
+    """Keep profiles without company evidence but flag them."""
+
+    plan = _plan()
+    passed, rejected = pre_gate_search_results(_company_evidence_results(plan.queries[0].query), _input())
+
+    assert rejected == []
+    assert [result.company_evidence for result in passed] == [False, True]
+    assert "Company not found in title/snippet" in passed[0].reasons
+    assert "Company evidence present" in passed[1].reasons
+
+
+def test_company_evidence_ignores_generic_words_substrings_and_legal_suffixes():
+    """Match the whole company name or domain, not partial words."""
+
+    def has_evidence(company_name, title, company_website=None):
+        terms = _company_terms(ReachoutInput(company_name=company_name, company_website=company_website))
+        result = SearchResult(
+            title=title, url="https://www.linkedin.com/in/x", query="q", rank=1, source="static"
+        )
+        return _has_company_evidence(result, terms)
+
+    assert not has_evidence("Acme Cloud Systems", "Bob Smith - Engineer - Globex Cloud Systems | LinkedIn")
+    assert has_evidence("Acme Cloud Systems", "Bob Smith - Engineer - Acme Cloud Systems | LinkedIn")
+    assert has_evidence("Acme Inc.", "Jane Carter - Engineer - Acme | LinkedIn")
+    assert not has_evidence("Meta", "Sam Lee - Metadata Engineer - Globex | LinkedIn", "https://meta.com")
+    assert has_evidence("Meta", "Sam Lee - Engineer - Meta | LinkedIn", "https://meta.com")
+
+
+def test_candidates_without_company_evidence_are_downgraded_and_ranked_last():
+    """Cap unverified candidates at low confidence and keep verified ones first."""
+
+    plan = _plan()
+    query = plan.queries[0].query
+
+    def run(target_contact_count):
+        validation_response = ReachoutCandidateValidationLLMResponse(
+            validation=ReachoutValidationResult(
+                accepted_candidates=[
+                    _accepted_candidate("Bob Smith", "gated_1", "https://www.linkedin.com/in/bob-smith", query),
+                    _accepted_candidate("Jane Carter", "gated_2", "https://www.linkedin.com/in/jane-carter-123456", query),
+                ]
+            )
+        )
+        llm = FakeLLM([ReachoutQueryPlanLLMResponse(search_plan=plan), validation_response])
+        search_fn = build_static_search_fn({query: _company_evidence_results(query)})
+        reachout_input = _input().model_copy(update={"target_contact_count": target_contact_count})
+        return ReachoutService(llm=llm, search_fn=search_fn).discover(reachout_input), llm
+
+    result, llm = run(2)
+
+    assert [candidate.full_name for candidate in result.candidates] == ["Jane Carter", "Bob Smith"]
+    assert result.candidates[0].confidence == 0.95
+    assert result.candidates[0].confidence_band == ConfidenceBand.HIGH
+    assert result.candidates[1].confidence == 0.4
+    assert result.candidates[1].confidence_band == ConfidenceBand.LOW
+    assert "Company not found in search title/snippet." in result.candidates[1].gating_notes
+    assert "`company_evidence`" in llm.calls[1]["messages"][0]["content"]
+
+    result, _ = run(1)
+
+    assert [candidate.full_name for candidate in result.candidates] == ["Jane Carter"]
 
 
 def test_unreconciled_llm_candidate_is_rejected():

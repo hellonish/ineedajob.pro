@@ -19,6 +19,7 @@ from .helpers import (
     search_google_programmable,
 )
 from .models import (
+    ConfidenceBand,
     GatedSearchResult,
     ReachoutCandidate,
     ReachoutCandidateValidationLLMResponse,
@@ -258,7 +259,8 @@ class ReachoutService:
         """Copy final profile links from deterministic gated search results."""
 
         by_id, by_url = self._gated_result_indexes(gated_results)
-        accepted: List[ReachoutCandidate] = []
+        verified: List[ReachoutCandidate] = []
+        unverified: List[ReachoutCandidate] = []
         rejected: List[RejectedReachoutResult] = []
         warnings: List[str] = []
         seen_urls = set()
@@ -279,10 +281,24 @@ class ReachoutService:
             if profile_url in seen_urls:
                 continue
             seen_urls.add(profile_url)
-            accepted.append(self._candidate_with_source(candidate, source, profile_url))
-            if len(accepted) >= target_count:
-                break
+            reconciled = self._candidate_with_source(candidate, source, profile_url)
+            if source.company_evidence:
+                verified.append(reconciled)
+            else:
+                unverified.append(self._downgrade_unverified_company(reconciled))
+        accepted = [*verified, *unverified][:target_count]
         return accepted, rejected, warnings
+
+    def _downgrade_unverified_company(self, candidate: ReachoutCandidate) -> ReachoutCandidate:
+        """Cap confidence for a candidate whose search result does not mention the company."""
+
+        return candidate.model_copy(
+            update={
+                "confidence": min(candidate.confidence, 0.4),
+                "confidence_band": ConfidenceBand.LOW,
+                "gating_notes": [*candidate.gating_notes, "Company not found in search title/snippet."],
+            }
+        )
 
     def _gated_result_indexes(
         self,

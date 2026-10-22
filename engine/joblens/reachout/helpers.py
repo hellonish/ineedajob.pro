@@ -28,6 +28,8 @@ BAD_LINKEDIN_PATH_PARTS = (
     "/groups/",
 )
 
+_LEGAL_SUFFIX_RE = re.compile(r"[\s,]+(inc|llc|ltd|limited|corp|corporation|co|plc|gmbh)\.?$")
+
 
 def pre_gate_search_results(
     results: Iterable[SearchResult],
@@ -41,7 +43,7 @@ def pre_gate_search_results(
     company_terms = _company_terms(reachout_input)
 
     for index, result in enumerate(results, start=1):
-        reasons = _rejection_reasons(result, company_terms)
+        reasons = _rejection_reasons(result)
         normalized_url = canonical_linkedin_profile_url(result.url)
         if normalized_url and normalized_url in seen_urls:
             reasons.append("Duplicate LinkedIn profile URL.")
@@ -59,16 +61,22 @@ def pre_gate_search_results(
             continue
         seen_urls.add(normalized_url or result.url)
         name, title, company = infer_person_fields(result)
+        company_evidence = _has_company_evidence(result, company_terms)
         passed.append(
             GatedSearchResult(
                 source_result_id=f"gated_{index}",
                 result=result,
                 status=SearchResultStatus.PASSED_PRE_GATE,
-                reasons=["LinkedIn /in/ URL", "Person-like title", "Company evidence present"],
+                reasons=[
+                    "LinkedIn /in/ URL",
+                    "Person-like title",
+                    "Company evidence present" if company_evidence else "Company not found in title/snippet",
+                ],
                 normalized_profile_url=normalized_url,
                 inferred_name=name,
                 inferred_title=title,
                 inferred_company=company,
+                company_evidence=company_evidence,
             )
         )
     return passed, rejected
@@ -283,7 +291,7 @@ def _decode_duckduckgo_redirect(url: str) -> str:
     return url
 
 
-def _rejection_reasons(result: SearchResult, company_terms: List[str]) -> List[str]:
+def _rejection_reasons(result: SearchResult) -> List[str]:
     """Return deterministic rejection reasons."""
 
     reasons: List[str] = []
@@ -296,12 +304,19 @@ def _rejection_reasons(result: SearchResult, company_terms: List[str]) -> List[s
         reasons.append("URL is a LinkedIn company, jobs, posts, school, search, or directory page.")
     if not _looks_person_like(result.title):
         reasons.append("Search title does not look like a person profile.")
-    if company_terms and not any(term in title_snippet for term in company_terms):
-        if profile_url is None:  # only enforce for non-profile URLs
-            reasons.append("Company name or domain is not present in title/snippet.")
     if any(token in title_snippet for token in ("jobs at", "hiring now", "apply", "company profile", "linkedin jobs")):
         reasons.append("Result appears to be a job, company, or directory page.")
     return reasons
+
+
+def _has_company_evidence(result: SearchResult, company_terms: List[str]) -> bool:
+    """Return True when a company term appears in the result title or snippet."""
+
+    title_snippet = f"{result.title} {result.snippet or ''}".lower()
+    return any(
+        re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", title_snippet)
+        for term in company_terms
+    )
 
 
 def _looks_person_like(title: str) -> bool:
@@ -327,12 +342,15 @@ def _company_terms(reachout_input: ReachoutInput) -> List[str]:
 
     terms = []
     if reachout_input.company_name:
-        terms.append(reachout_input.company_name.lower())
-        terms.extend(part.lower() for part in reachout_input.company_name.split() if len(part) > 3)
+        name = reachout_input.company_name.lower().strip()
+        terms.append(name)
+        terms.append(_LEGAL_SUFFIX_RE.sub("", name).strip())
     if reachout_input.company_website:
         company_website = reachout_input.company_website
         domain = urlparse(company_website if "://" in company_website else f"https://{company_website}").netloc
         domain = domain.lower().removeprefix("www.")
         terms.append(domain)
-        terms.append(domain.split(".", 1)[0])
+        stem = domain.split(".", 1)[0]
+        if len(stem) >= 3:
+            terms.append(stem)
     return list(dict.fromkeys(term for term in terms if term))
